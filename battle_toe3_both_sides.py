@@ -150,7 +150,7 @@ for game in range(1000000000):
             # Take step along gradient
             if TRAINING:
                 sess.run([train_step],
-                    feed_dict={input_positions:[current_board], target_input:[target], learning_rate:0001})
+                    feed_dict={input_positions:[current_board], target_input:[target], learning_rate:0.001})
 
     random_move_prob = 1. / ((game / 50) + 10)
     if(game % 100 == 0):
