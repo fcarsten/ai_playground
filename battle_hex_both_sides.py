@@ -11,25 +11,26 @@ import pylab
 from hex_board import *
 from hex_canvas import *
 
-BOARD_SIZE = 5
+BOARD_SIZE = 3
 STATE_SIZE = BOARD_SIZE*BOARD_SIZE
 
-hidden_units = STATE_SIZE
+hidden_units = STATE_SIZE*STATE_SIZE
 output_units = STATE_SIZE
 
-input_positions = tf.placeholder(tf.float32, shape=(1, STATE_SIZE))
-target_input = tf.placeholder(tf.float32, shape=(1, STATE_SIZE))
+input_positions = tf.placeholder(tf.float32, shape=(None, STATE_SIZE))
+target_input = tf.placeholder(tf.float32, shape=(None, STATE_SIZE))
 target =          tf.nn.softmax(target_input)
 learning_rate =   tf.placeholder(tf.float32, shape=[])
 # Generate hidden layer
 W1 = tf.Variable(tf.truncated_normal([STATE_SIZE, hidden_units],
              stddev=0.1 / np.sqrt(float(STATE_SIZE))))
-b1 = tf.Variable(tf.zeros([1, hidden_units]))
-h1 = tf.tanh(tf.matmul(input_positions, W1) + b1)
+b1 = tf.Variable(tf.truncated_normal([1, hidden_units]))
+#h1 = tf.tanh(tf.matmul(input_positions, W1) + b1)
+h1 = tf.matmul(input_positions, W1) + b1
 # Second layer -- linear classifier for action logits
 W2 = tf.Variable(tf.truncated_normal([hidden_units, output_units],
              stddev=0.1 / np.sqrt(float(hidden_units))))
-b2 = tf.Variable(tf.zeros([1, output_units]))
+b2 = tf.Variable(tf.truncated_normal([1, output_units]))
 logits = tf.matmul(h1, W2) + b2
 probabilities = tf.nn.softmax(logits)
 
@@ -55,6 +56,21 @@ wins=0
 losses=0
 draws=0
 
+class random_player:
+    def __init__(self, side):
+        self.side = side
+
+    def move(self, sess, board, training):
+        move = board.random_empty_spot()
+        _, res, finished = board.move(move, self.side)
+        return res, finished
+
+    def final_reward(self, reward):
+        pass
+
+    def trainable(self):
+        return False
+
 class agent:
     def __init__(self, side):
         self.side=side
@@ -65,7 +81,7 @@ class agent:
         self.reward = DRAW_REWARD
 
     def move(self, sess, board, training):
-        self.board_position_log.append(board.state.copy())
+        self.board_position_log.append(board.state.reshape(STATE_SIZE).copy())
         probs = sess.run([probabilities], feed_dict={input_positions:[board.state.reshape(STATE_SIZE)]})[0][0]
         self.probs_log.append(np.copy(probs))
         #        probs = [p * (index not in action_log) for index, p in enumerate(probs)]
@@ -91,19 +107,21 @@ class agent:
         self.reward = reward
         self.next_max_log.append(reward)
 
+    def trainable(self):
+        return True
 
 def play_game(training=TRAINING):
     global wins, losses, draws
-    """ Play game of battleship using network."""
+    """ Play game of hex using network."""
     # Select random location for ship
-    board = Board(5)
+    board = Board(BOARD_SIZE)
     # Initialize logs for game
     # Play through game
     finished = False
     move_count = 0
 
     player1 = agent(PLAYER_ONE)
-    player2 = agent(PLAYER_TWO)
+    player2 = random_player(PLAYER_TWO)
 
     while not finished:
         res, finished = player1.move(sess, board, training)
@@ -149,14 +167,14 @@ TRAINING = True  # Boolean specifies training mode
 for game in range(1000000000):
     player1, player2, result = play_game(training=TRAINING)
 
-    for player in [player1, player2]:
-        targets = target_calculator(player.action_log, player.probs_log, player.next_max_log, player.reward)
+    if TRAINING:
+        for player in [player1, player2]:
+            if player.trainable():
+                targets = target_calculator(player.action_log, player.probs_log, player.next_max_log, player.reward)
 
-        for target, current_board, action in zip(targets, player.board_position_log, player.action_log):
-            # Take step along gradient
-            if TRAINING:
-                sess.run([train_step],
-                    feed_dict={input_positions:[current_board.reshape(STATE_SIZE)], target_input:[target], learning_rate:0.001})
+                # for target, current_board in zip(targets, player.board_position_log):
+                # Take step along gradient
+                sess.run([train_step], feed_dict={input_positions:player.board_position_log, target_input:targets, learning_rate:0.001})
 
     random_move_prob = 1. / ((game / 50) + 10)
     if(game % 100 == 0):
