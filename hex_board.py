@@ -45,7 +45,7 @@ class Board:
             for k in range(self.size):
                 if self.state[i,k] == EMPTY:
                     if index == 0:
-                        return i
+                        return (i,k)
                     else:
                         index = index-1
 
