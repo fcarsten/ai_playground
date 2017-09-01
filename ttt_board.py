@@ -45,7 +45,7 @@ class Board:
 
     def move(self, position, type):
         if self.state[position]!=EMPTY:
-            print 'Illegal move'
+            print('Illegal move')
             raise ValueError("Invalid move")
 #            return self.state, ILLEGAL, True
 
@@ -76,8 +76,8 @@ class Board:
         if c == EMPTY:
             return EMPTY
 
-        p1 = self.apply_dir(pos, dir)
-        p2 = self.apply_dir(p1, dir)
+        p1 = int(self.apply_dir(pos, dir))
+        p2 = int(self.apply_dir(p1, dir))
 
         if(p1 == -1 or p2 ==-1):
             return EMPTY
@@ -110,9 +110,9 @@ class Board:
         for i in range(3):
             str= self.state_to_char(i*3)+'|' + self.state_to_char(i*3+1)+'|' + self.state_to_char(i*3+2)
 
-            print str
+            print(str)
             if i != 2:
-                print "-----"
+                print ("-----")
 
-        print ""
+        print("")
 

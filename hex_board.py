@@ -67,7 +67,7 @@ class Board:
             position = self.pos_to_cord(position)
 
         if self.state[position]!=EMPTY:
-            print 'Illegal move'
+            print('Illegal move')
             raise ValueError("Invalid move")
 #            return self.state, ILLEGAL, True
 

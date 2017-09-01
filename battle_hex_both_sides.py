@@ -7,7 +7,6 @@
 import tensorflow as tf
 import numpy as np
 #%matplotlib inline
-import pylab
 from hex_board import *
 from hex_canvas import *
 
@@ -178,6 +177,6 @@ for game in range(1000000000):
 
     random_move_prob = 1. / ((game / 50) + 10)
     if(game % 100 == 0):
-        print 'Player 1: {} Player 2: {} Draws: {}'.format(wins, losses, draws)
+        print('Player 1: {} Player 2: {} '.format(wins, losses))
         if(losses>0):
-            print 'Ratio:{}'.format(wins*1.0/losses)
+            print('Ratio:{}'.format(wins*1.0/losses))

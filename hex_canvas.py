@@ -49,7 +49,7 @@ def print_board(board):
         offset += '  '
 
     for line in lines:
-        print line
+        print(line)
 
 if __name__ == "__main__":
     board = Board(size=5)
