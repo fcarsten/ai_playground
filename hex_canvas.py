@@ -11,37 +11,45 @@ def print_board(board):
     #
     # draw header
     #
+
+    lines = []
+
     header = ''
     for i in range(board.size):
         header += top_header
     print(header)
     line = ''
-    for k in range(board.size):
-        line += level_1.format(board.state_to_char((0,k)))
-
-    print line
+    # for k in range(board.size):
+    #     line += level_1.format(board.state_to_char((0,k)))
+    #
+    # lines.append(line)
 
     offset = ''
-    for i in range(board.size-2):
-        line = offset #+ '\_'
-        for k in range(board.size):
-            line += level_2.format(board.state_to_char((i+1,k)))
+    for i in range(board.size):
+        line_down = offset #+ '\_'
+        line_up = offset
+        x = 0
+        y = 0
 
-        print line+level_2_end.format(board.state_to_char((i+1,k)))
+        for k in range(board.size-i):
+            x = k
+            y = i+k+1
+            if(k+1 < board.size-i):
+                line_down += level_2.format(board.state_to_char((x,y)))
+            else:
+                line_down += level_2.format('')
 
+            x= k+i
+            y= k
+            line_up += level_1.format(board.state_to_char((x,y)))
+
+        #        print line #+level_2_end.format(board.state_to_char((i+1,k)))
+        lines.append(line_down)
+        lines.insert(0, line_up)
         offset += '  '
 
-    line = offset
-    for k in range(board.size):
-        line += level_2.format(board.state_to_char((board.size-1,k)))
-    print line + '\\'
-
-    offset += '  '
-    line = offset
-    for k in range(board.size):
-        line += level_2.format(' ')
-
-    print line
+    for line in lines:
+        print line
 
 if __name__ == "__main__":
     board = Board(size=5)

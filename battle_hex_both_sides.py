@@ -108,15 +108,17 @@ def play_game(training=TRAINING):
     while not finished:
         res, finished = player1.move(sess, board, training)
 
-        print_board(board)
+        #print_board(board)
         # If game not over make a radom opponent move
         if not finished:
             res, finished = player2.move(sess, board, training)
             res = -res
+            #print_board(board)
 
-        print_board(board)
-
+    #print_board(board)
     if res == DRAW:
+        board.check_win(PLAYER_ONE)
+        board.check_win(PLAYER_TWO)
         player1.final_reward(DRAW_REWARD)
         player2.final_reward(DRAW_REWARD)
         draws = draws+1

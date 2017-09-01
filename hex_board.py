@@ -49,14 +49,18 @@ class Board:
                     else:
                         index = index-1
 
+
+    def is_valid_pos(self, pos):
+        if not hasattr(pos, "__len__"):
+            pos = self.pos_to_cord(pos)
+
+        return pos[0] >=0 and pos[0] < self.size and pos[1]>=0 and pos[1] < self.size
+
     def is_legal(self, pos):
         if not hasattr(pos, "__len__"):
             pos = self.pos_to_cord(pos)
 
-        if pos[0] >= self.size or pos[1] >= self.size:
-            return False
-
-        return self.state[pos] == EMPTY
+        return self.is_valid_pos(pos) and  self.state[pos] == EMPTY
 
     def move(self, position, player):
         if not hasattr(position, "__len__"):
@@ -85,33 +89,33 @@ class Board:
             return ' '
 
         if (self.state[pos]) == PLAYER_TWO:
-            return 'v'
+            return 'o'
 
-        return '>'
+        return 'x'
 
     def check_win(self, player):
         visit = np.zeros((self.size, self.size), dtype=bool)
 
-        if(player == PLAYER_TWO) :
+        if(player == PLAYER_ONE) :
             for i in range(self.size):
-                if self.state[0,i] == PLAYER_TWO and ( not visit[0,i]) and self.game_won(PLAYER_TWO, (i,0), visit):
+                if self.state[0,i] == PLAYER_ONE and ( not visit[0,i]) and self.game_won(PLAYER_ONE, (0,i), visit):
                     return True
         else:
             for i in range(self.size):
-                if self.state[i,0] == PLAYER_ONE and ( not visit[i,0]) and self.game_won(PLAYER_ONE, (i,0), visit):
+                if self.state[i,0] == PLAYER_TWO and ( not visit[i,0]) and self.game_won(PLAYER_TWO, (i,0), visit):
                     return True
         
         return False
     
     def game_won(self, who, pos, visit):
-        if ((who == PLAYER_ONE and pos[0] == self.size - 1) or (who == PLAYER_TWO and pos[1] == self.size - 1)):
+        if ((who == PLAYER_TWO and pos[1] == self.size - 1) or (who == PLAYER_ONE and pos[0] == self.size - 1)):
             return True
 
         visit[pos] = True
 
         for n in range(6):
             to = (pos[0]+ Board.nbor[n][0], pos[1]+Board.nbor[n][1])
-            if (self.is_legal(to) and self.state[to] == who) and ( not visit[to]) and self.game_won(who, to, visit):
+            if (self.is_valid_pos(to) and self.state[to] == who) and ( not visit[to]) and self.game_won(who, to, visit):
                 return True
 
         return False
