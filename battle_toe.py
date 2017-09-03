@@ -121,6 +121,6 @@ for game in range(1000000000):
 
     e = 1. / ((game / 50) + 10)
     if(game % 100 == 0):
-        print 'wins: {} Losses: {} Draws: {}'.format(wins, losses, draws)
+        print('wins: {} Losses: {} Draws: {}'.format(wins, losses, draws))
         if(losses>0):
-            print 'Ratio:{}'.format(wins*1.0/losses)
+            print('Ratio:{}'.format(wins * 1.0 / losses))

@@ -142,12 +142,12 @@ with tf.Session() as sess:
 
                 if(i % 100 == 0):
 #                    board.print_board()
-                    print 'wins: {} Losses: {} Draws: {}'.format(wins, loss, draws)
+                    print('wins: {} Losses: {} Draws: {}'.format(wins, loss, draws))
                     if(loss>0):
-                        print 'Ratio:{}'.format(wins*1.0/loss)
+                        print ('Ratio:{}'.format(wins*1.0/loss))
                     #Reduce chance of random action as we train the model.
                     if(i%10000):
                         saver.save(sess, model_name)
-print "Percent of succesful episodes: " + str(sum(rList)/num_episodes) + "%"
+print ("Percent of succesful episodes: " + str(sum(rList)/num_episodes) + "%")
 
 print("End")
