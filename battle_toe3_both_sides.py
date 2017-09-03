@@ -36,13 +36,13 @@ def build_graph():
     target_input = tf.placeholder(tf.float32, shape=(None, BOARD_SIZE), name='train_inputs')
     target = tf.nn.softmax(target_input)
 
-    net = add_layer(input_positions, 128, tf.tanh)
+    net = add_layer(input_positions, BOARD_SIZE*BOARD_SIZE, tf.tanh)
 
-    net = add_layer(net, 512, tf.tanh)
+    net = add_layer(net, BOARD_SIZE*BOARD_SIZE*BOARD_SIZE, tf.tanh)
 
-    net = add_layer(net, 512, tf.tanh)
+    net = add_layer(net, BOARD_SIZE*BOARD_SIZE*BOARD_SIZE, tf.tanh)
 
-    net = add_layer(net, 128, tf.tanh)
+    net = add_layer(net, BOARD_SIZE*BOARD_SIZE, tf.tanh)
 
     logits = add_layer(net, BOARD_SIZE)
 
@@ -60,7 +60,7 @@ def build_graph():
 
     probabilities = tf.nn.softmax(logits, name='probabilities')
     mse = tf.losses.mean_squared_error(predictions=probabilities, labels=target)
-    train_step = tf.train.GradientDescentOptimizer(learning_rate=LEARNING_RATE, name='train').minimize(mse)
+    train_step = tf.train.GradientDescentOptimizer(learning_rate=LEARNING_RATE).minimize(mse, name='train')
     return input_positions, probabilities, target_input, train_step
 
 
