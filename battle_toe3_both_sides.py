@@ -6,39 +6,78 @@
 
 import tensorflow as tf
 import numpy as np
-#%matplotlib inline
-#import pylab
+# %matplotlib inline
+# import pylab
 import ttt_board as ttt
+import os.path
 
 BOARD_SIZE = 9
+LEARNING_RATE = 0.001
+MODEL_NAME = 'tic-tac-toe-model-deep'
 
-hidden_units = BOARD_SIZE*BOARD_SIZE
-output_units = BOARD_SIZE
 
-input_positions = tf.placeholder(tf.float32, shape=(None, BOARD_SIZE))
-target_input = tf.placeholder(tf.float32, shape=(None, BOARD_SIZE))
-target =          tf.nn.softmax(target_input)
-learning_rate =   tf.placeholder(tf.float32, shape=[])
-# Generate hidden layer
-W1 = tf.Variable(tf.truncated_normal([BOARD_SIZE, hidden_units],
-             stddev=0.1 / np.sqrt(float(BOARD_SIZE))))
-b1 = tf.Variable(tf.zeros([1, hidden_units]))
-h1 = tf.tanh(tf.matmul(input_positions, W1) + b1)
-# Second layer -- linear classifier for action logits
-W2 = tf.Variable(tf.truncated_normal([hidden_units, output_units],
-             stddev=0.1 / np.sqrt(float(hidden_units))))
-b2 = tf.Variable(tf.zeros([1, output_units]))
-logits = tf.matmul(h1, W2) + b2
-probabilities = tf.nn.softmax(logits)
+# hidden_units = BOARD_SIZE * BOARD_SIZE
+# output_units = BOARD_SIZE
 
-init = tf.initialize_all_variables()
-cross_entropy = tf.losses.mean_squared_error(predictions=probabilities, labels=target)
-train_step = tf.train.GradientDescentOptimizer(learning_rate=learning_rate).minimize(cross_entropy)
-# Start TF session
-sess = tf.Session()
-sess.run(init)
 
-random_move_prob = 0.1
+def add_layer(input, output_size, normalize=None):
+    input_size = input.shape[1].value
+    w1 = tf.Variable(tf.truncated_normal([input_size, output_size],
+                                         stddev=0.1 / np.sqrt(float(input_size * output_size))))
+    b1 = tf.Variable(tf.truncated_normal([1, output_size], stddev=0.1 / np.sqrt(float(output_size))))
+    if normalize is None:
+        return tf.matmul(input, w1) + b1
+
+    return normalize(tf.matmul(input, w1) + b1)
+
+
+def build_graph():
+    input_positions = tf.placeholder(tf.float32, shape=(None, BOARD_SIZE), name='inputs')
+    target_input = tf.placeholder(tf.float32, shape=(None, BOARD_SIZE), name='train_inputs')
+    target = tf.nn.softmax(target_input)
+
+    net = add_layer(input_positions, 128, tf.tanh)
+
+    net = add_layer(net, 512, tf.tanh)
+
+    net = add_layer(net, 512, tf.tanh)
+
+    net = add_layer(net, 128, tf.tanh)
+
+    logits = add_layer(net, BOARD_SIZE)
+
+    # #    learning_rate =   tf.placeholder(tf.float32, shape=[])
+    # # Generate hidden layer
+    # w1 = tf.Variable(tf.truncated_normal([BOARD_SIZE, hidden_units],
+    #                                      stddev=0.1 / np.sqrt(float(BOARD_SIZE))))
+    # b1 = tf.Variable(tf.zeros([1, hidden_units]))
+    # h1 = tf.tanh(tf.matmul(input_positions, w1) + b1)
+    # # Second layer -- linear classifier for action logits
+    # w2 = tf.Variable(tf.truncated_normal([hidden_units, output_units],
+    #                                      stddev=0.1 / np.sqrt(float(hidden_units))))
+    # b2 = tf.Variable(tf.zeros([1, output_units]))
+    # logits = tf.matmul(h1, w2) + b2
+
+    probabilities = tf.nn.softmax(logits, name='probabilities')
+    mse = tf.losses.mean_squared_error(predictions=probabilities, labels=target)
+    train_step = tf.train.GradientDescentOptimizer(learning_rate=LEARNING_RATE, name='train').minimize(mse)
+    return input_positions, probabilities, target_input, train_step
+
+
+def load_graph(sess):
+    saver = tf.train.import_meta_graph(MODEL_NAME + '.meta')
+    saver.restore(sess, tf.train.latest_checkpoint('./'))
+
+    all_vars = tf.get_collection('vars')
+
+    graph = tf.get_default_graph()
+    input_positions = graph.get_tensor_by_name("inputs:0")
+    probabilities = graph.get_tensor_by_name("probabilities:0")
+    target_input = graph.get_tensor_by_name("train_inputs:0")
+    train_step = graph.get_operation_by_name("train")
+    return input_positions, probabilities, target_input, train_step, saver
+
+
 WIN_REWARD = 1
 DRAW_REWARD = 0.5
 LOSS_REWARD = 0
@@ -49,22 +88,26 @@ PLAYER2_WIN = -1
 
 TRAINING = True
 
-wins=0
-losses=0
-draws=0
+wins = 0
+losses = 0
+draws = 0
 
-class agent:
-    def __init__(self, side):
-        self.side=side
+
+class Agent:
+    def __init__(self, side, input_positions, probabilities):
+        self.side = side
+        self.input_positions = input_positions
+        self.probabilities = probabilities
         self.board_position_log = []
         self.action_log = []
         self.next_max_log = []
         self.probs_log = []
         self.reward = DRAW_REWARD
+        self.random_move_prob = 0.1
 
     def move(self, sess, board, training):
         self.board_position_log.append(board.state.copy())
-        probs = sess.run([probabilities], feed_dict={input_positions:[board.state]})[0][0]
+        probs = sess.run([self.probabilities], feed_dict={self.input_positions: [board.state]})[0][0]
         self.probs_log.append(np.copy(probs))
         #        probs = [p * (index not in action_log) for index, p in enumerate(probs)]
         for index, p in enumerate(probs):
@@ -72,66 +115,83 @@ class agent:
                 probs[index] = 0
 
         probs = [p / sum(probs) for p in probs]
-        if training == True and np.random.rand(1) < random_move_prob:
+        if training is True and np.random.rand(1) < self.random_move_prob:
             move = np.random.choice(BOARD_SIZE, p=probs)
         else:
             move = np.argmax(probs)
         # update board, logs
         #        hit_log.append(1 * (bomb_index in ship_positions))
-        _, res, dead = board.move(move, self.side)
+        _, res, finished = board.move(move, self.side)
 
         self.action_log.append(move)
         if len(self.action_log) > 1:
             self.next_max_log.append(np.max(probs))
 
-        return res, dead
+        return res, finished
 
     def final_reward(self, reward):
         self.reward = reward
         self.next_max_log.append(reward)
+        self.random_move_prob = 0.95 * self.random_move_prob
+
+    def is_trainable(self):
+        return True
 
 
-def play_game(training=TRAINING):
+class RandomPlayer:
+    def __init__(self, side):
+        self.side = side
+        self.reward = DRAW_REWARD
+
+    def move(self, sess, board, trainig):
+        _, res, finished = board.move(board.random_empty_spot(), self.side)
+        return res, finished
+
+    def final_reward(self, reward):
+        self.reward = reward
+
+    def is_trainable(self):
+        return False
+
+
+def play_game(player1, player2, sess, training=TRAINING):
     global wins, losses, draws
     """ Play game of battleship using network."""
     # Select random location for ship
     board = ttt.Board()
-    # Initialize logs for game
-    # Play through game
-    dead = False
-    move_count = 0
+    finished = False
+    res = DRAW
 
-    player1 = agent(ttt.NAUGHT)
-    player2 = agent(ttt.CROSS)
-
-    while not dead:
-        res, dead = player1.move(sess, board, training)
+    while not finished:
+        res, finished = player1.move(sess, board, training)
         # board.print_board()
-        # if(dead):
+        # if(finished):
         #     board.check_win()
+
         # If game not over make a radom opponent move
-        if not dead:
-            res, dead = player2.move(sess, board, training)
+        if not finished:
+            res, finished = player2.move(sess, board, training)
             res = -res
             # board.print_board()
-            # if(dead):
+            # if(finished):
             #     board.check_win()
 
     board.check_win()
     if res == DRAW:
         player1.final_reward(DRAW_REWARD)
         player2.final_reward(DRAW_REWARD)
-        draws = draws+1
+        draws = draws + 1
     elif res == PLAYER1_WIN:
         player1.final_reward(WIN_REWARD)
         player2.final_reward(LOSS_REWARD)
-        wins = wins+1
+        wins = wins + 1
     else:
         player1.final_reward(LOSS_REWARD)
         player2.final_reward(WIN_REWARD)
-        losses=losses+1
+        losses = losses + 1
 
     return player1, player2, res
+
 
 def target_calculator(action_log, probs_log, next_max_log, reward):
     game_length = len(action_log)
@@ -144,26 +204,50 @@ def target_calculator(action_log, probs_log, next_max_log, reward):
 
     return targets
 
-TRAINING = True  # Boolean specifies training mode
 
-for game in range(1000000000):
-    player1, player2, result = play_game(training=TRAINING)
+def main():
+    sess = tf.Session()
 
-    if TRAINING:
-        for player in [player1, player2]:
-            targets = target_calculator(player.action_log, player.probs_log, player.next_max_log, player.reward)
+    if os.path.exists(MODEL_NAME + '.meta'):
+        input_positions, probabilities, target_input, train_step, saver = load_graph(sess)
+    else:
+        input_positions, probabilities, target_input, train_step = build_graph()
+        init = tf.global_variables_initializer()
+        sess.run(init)
+        saver = tf.train.Saver()
 
-            # for target, current_board, action in zip(targets, player.board_position_log, player.action_log):
-            # # Take step along gradient
-            #     sess.run([train_step],
-            #         feed_dict={input_positions:[current_board], target_input:[target], learning_rate:0.001})
+    # Start TF session
 
-            # Take step along gradient
-            sess.run([train_step],
-                     feed_dict={input_positions: player.board_position_log, target_input: targets, learning_rate: 0.001})
+    for game in range(1000000000):
+        player1 = RandomPlayer(ttt.NAUGHT)
+        #        player1 = Agent(ttt.NAUGHT, input_positions, probabilities)
+        # player2 = RandomPlayer(ttt.CROSS)
+        player2 = Agent(ttt.CROSS, input_positions, probabilities)
 
-    random_move_prob = 1. / ((game / 50) + 10)
-    if(game % 100 == 0):
-        print('Player 1: {} Player 2: {} Draws: {}'.format(wins, losses, draws))
-        if(losses>0):
-            print('Ratio:{}'.format(wins*1.0/losses))
+        play_game(player1, player2, sess, training=TRAINING)
+
+        if TRAINING:
+            for player in [player1, player2]:
+                if player.is_trainable():
+                    targets = target_calculator(player.action_log, player.probs_log, player.next_max_log, player.reward)
+
+                    # Stochastic trainig
+                    for target, current_board in zip(targets, player.board_position_log):
+                        sess.run([train_step],
+                                 feed_dict={input_positions: [current_board], target_input: [target]})
+
+                        # Batch training
+                        # sess.run([train_step],
+                        #          feed_dict={input_positions: player.board_position_log, target_input: targets})
+
+        if game % 100 == 0:
+            print('Player 1: {} Player 2: {} Draws: {}'.format(wins, losses, draws))
+            if losses > 0:
+                print('Ratio:{}'.format(wins * 1.0 / losses))
+
+            if game % 1000 == 0:
+                saver.save(sess, '.\\'+MODEL_NAME)
+
+
+if __name__ == '__main__':
+    main()
