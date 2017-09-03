@@ -60,7 +60,7 @@ class Board:
         return self.state, NEUTRAL, False
 
     def apply_dir(self, pos, dir):
-        row = pos / 3
+        row = pos // 3
         col = pos % 3
         row += dir[0]
         if(row<0 or row>2):
