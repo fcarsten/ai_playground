@@ -12,11 +12,11 @@ import ttt_board as ttt
 
 BOARD_SIZE = 9
 
-hidden_units = BOARD_SIZE
+hidden_units = BOARD_SIZE*BOARD_SIZE
 output_units = BOARD_SIZE
 
-input_positions = tf.placeholder(tf.float32, shape=(1, BOARD_SIZE))
-target_input = tf.placeholder(tf.float32, shape=(1, BOARD_SIZE))
+input_positions = tf.placeholder(tf.float32, shape=(None, BOARD_SIZE))
+target_input = tf.placeholder(tf.float32, shape=(None, BOARD_SIZE))
 target =          tf.nn.softmax(target_input)
 learning_rate =   tf.placeholder(tf.float32, shape=[])
 # Generate hidden layer
@@ -106,12 +106,18 @@ def play_game(training=TRAINING):
 
     while not dead:
         res, dead = player1.move(sess, board, training)
-
+        # board.print_board()
+        # if(dead):
+        #     board.check_win()
         # If game not over make a radom opponent move
         if not dead:
             res, dead = player2.move(sess, board, training)
             res = -res
+            # board.print_board()
+            # if(dead):
+            #     board.check_win()
 
+    board.check_win()
     if res == DRAW:
         player1.final_reward(DRAW_REWARD)
         player2.final_reward(DRAW_REWARD)
@@ -143,14 +149,18 @@ TRAINING = True  # Boolean specifies training mode
 for game in range(1000000000):
     player1, player2, result = play_game(training=TRAINING)
 
-    for player in [player1, player2]:
-        targets = target_calculator(player.action_log, player.probs_log, player.next_max_log, player.reward)
+    if TRAINING:
+        for player in [player1, player2]:
+            targets = target_calculator(player.action_log, player.probs_log, player.next_max_log, player.reward)
 
-        for target, current_board, action in zip(targets, player.board_position_log, player.action_log):
+            # for target, current_board, action in zip(targets, player.board_position_log, player.action_log):
+            # # Take step along gradient
+            #     sess.run([train_step],
+            #         feed_dict={input_positions:[current_board], target_input:[target], learning_rate:0.001})
+
             # Take step along gradient
-            if TRAINING:
-                sess.run([train_step],
-                    feed_dict={input_positions:[current_board], target_input:[target], learning_rate:0.001})
+            sess.run([train_step],
+                     feed_dict={input_positions: player.board_position_log, target_input: targets, learning_rate: 0.001})
 
     random_move_prob = 1. / ((game / 50) + 10)
     if(game % 100 == 0):
