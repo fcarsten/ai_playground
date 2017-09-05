@@ -1,8 +1,6 @@
 #
 # Copyright 2017 Carsten Friedrich (Carsten.Friedrich@gmail.com). All rights reserved
 #
-# Based on: http://efavdb.com/battleship/ by Jonathan Landy
-#
 
 import tensorflow as tf
 import numpy as np
@@ -12,31 +10,31 @@ import ttt_board as ttt
 import os.path
 
 BOARD_SIZE = 9
-LEARNING_RATE = 0.1
-MODEL_NAME = 'tic-tac-toe-model-deep'
+LEARNING_RATE = 0.001
+MODEL_NAME = 'tic-tac-toe-model-binary'
 
 
 # hidden_units = BOARD_SIZE * BOARD_SIZE
 # output_units = BOARD_SIZE
 
 
-def add_layer(input, output_size, normalize=None):
-    input_size = input.shape[1].value
-    w1 = tf.Variable(tf.truncated_normal([input_size, output_size],
-                                         stddev=0.1 / np.sqrt(float(input_size * output_size))))
-    b1 = tf.Variable(tf.truncated_normal([1, output_size], stddev=0.1 / np.sqrt(float(output_size))))
+def add_layer(input_tensor, output_size, normalize=None):
+    input_tensor_size = input_tensor.shape[1].value
+    w1 = tf.Variable(tf.truncated_normal([input_tensor_size, output_size],
+                                         stddev=0.1 / np.sqrt(float(input_tensor_size * output_size))))
+    b1 = tf.Variable(tf.zeros([1, output_size], tf.float32))
     if normalize is None:
-        return tf.matmul(input, w1) + b1
+        return tf.matmul(input_tensor, w1) + b1
 
-    return normalize(tf.matmul(input, w1) + b1)
+    return normalize(tf.matmul(input_tensor, w1) + b1)
 
 
 def build_graph():
-    input_positions = tf.placeholder(tf.float32, shape=(None, BOARD_SIZE), name='inputs')
+    input_positions = tf.placeholder(tf.float32, shape=(None, BOARD_SIZE * 3), name='inputs')
     target_input = tf.placeholder(tf.float32, shape=(None, BOARD_SIZE), name='train_inputs')
     target = tf.nn.softmax(target_input)
 
-    net = add_layer(input_positions, BOARD_SIZE*BOARD_SIZE, tf.tanh)
+    net = add_layer(input_positions, BOARD_SIZE * BOARD_SIZE, tf.tanh)
 
     # net = add_layer(net, BOARD_SIZE*BOARD_SIZE*BOARD_SIZE, tf.tanh)
     #
@@ -79,7 +77,7 @@ def load_graph(sess):
 
 
 WIN_REWARD = 1.0
-DRAW_REWARD = 0.5
+DRAW_REWARD = 1.0
 LOSS_REWARD = 0.0
 
 PLAYER1_WIN = 1
@@ -93,7 +91,94 @@ losses = 0
 draws = 0
 
 
+class MinMaxAgent:
+    cache = {}
+
+    def __init__(self, side):
+        self.side = side
+        self.reward = 0.0
+
+    def final_reward(self, reward):
+        self.reward = reward
+
+    def is_trainable(self):
+        return False
+
+    def _min(self, board):
+#        board.print_board()
+        board_hash = board.hash_value()
+        if board_hash in self.cache:
+            return self.cache[board_hash]
+
+        winner = board.check_win()
+        if winner == self.side:
+            return 1, -1
+        elif winner == board.other_side(self.side):
+            return 0, -1
+
+        min = 0.5  # 0.5 means DRAW
+        action = -1
+
+        for index in [i for i, e in enumerate(board.state) if board.state[i] == ttt.EMPTY]:
+            b = ttt.Board(board.state)
+            b.move(index, board.other_side(self.side))
+
+            res, _ = self._max(b)
+            if res < min or action == -1:
+                min = res
+                action = index
+                if min == 0:
+                    self.cache[board_hash] = (min, action)
+                    return min, action
+
+
+        self.cache[board_hash] = (min, action)
+        return min, action
+
+    def _max(self, board):
+#        board.print_board()
+        board_hash = board.hash_value()
+        if board_hash in self.cache:
+            return self.cache[board_hash]
+
+        winner = board.check_win()
+        if winner == self.side:
+            return 1, -1
+        elif winner == board.other_side(self.side):
+            return 0, -1
+
+        max = 0.5  # 0.5 means DRAW
+        action = -1
+
+        for index in [i for i, e in enumerate(board.state) if board.state[i] == ttt.EMPTY]:
+            b = ttt.Board(board.state)
+            b.move(index, self.side)
+
+            res, _ = self._min(b)
+            if res > max or action == -1:
+                max = res
+                action = index
+                if max == 1:
+                    self.cache[board_hash] = (max, action)
+                    return max, action
+
+
+        self.cache[board_hash] = (max, action)
+        return max, action
+
+    def move(self, sess, board, trainig):
+        score, action = self._max(board)
+        _, res, finished = board.move(action, self.side)
+        return res, finished
+
+
 class Agent:
+    def board_state_to_nn_input(self, state):
+        res = np.array([(state == self.side).astype(int),
+                        (state == ttt.Board.other_side(self.side)).astype(int),
+                        (state == ttt.EMPTY).astype(int)])
+        return res.reshape(-1)
+
     def __init__(self, side, input_positions, probabilities):
         self.side = side
         self.input_positions = input_positions
@@ -107,7 +192,9 @@ class Agent:
 
     def move(self, sess, board, training):
         self.board_position_log.append(board.state.copy())
-        probs = sess.run([self.probabilities], feed_dict={self.input_positions: [board.state]})[0][0]
+        nn_input = self.board_state_to_nn_input(board.state)
+
+        probs = sess.run([self.probabilities], feed_dict={self.input_positions: [nn_input]})[0][0]
         self.probs_log.append(np.copy(probs))
         #        probs = [p * (index not in action_log) for index, p in enumerate(probs)]
         for index, p in enumerate(probs):
@@ -176,7 +263,6 @@ def play_game(player1, player2, sess, training=TRAINING):
             # if(finished):
             #     board.check_win()
 
-    board.check_win()
     if res == DRAW:
         player1.final_reward(DRAW_REWARD)
         player2.final_reward(DRAW_REWARD)
@@ -197,10 +283,13 @@ def target_calculator(action_log, probs_log, next_max_log, reward):
     game_length = len(action_log)
     targets = []
 
-    for i in range(game_length):
+    for i in range(game_length - 1, 0, -1):
         target = np.copy(probs_log[i])
         target[action_log[i]] = reward + 0.99 * next_max_log[i]
+        # reward /= 2
         targets.append(target)
+
+    targets.reverse()
 
     return targets
 
@@ -221,8 +310,8 @@ def main():
     for game in range(1000000000):
         # player1 = RandomPlayer(ttt.NAUGHT)
         player1 = Agent(ttt.NAUGHT, input_positions, probabilities)
-        player2 = RandomPlayer(ttt.CROSS)
-        #player2 = Agent(ttt.CROSS, input_positions, probabilities)
+        player2 = MinMaxAgent(ttt.CROSS)
+        # player2 = Agent(ttt.CROSS, input_positions, probabilities)
 
         play_game(player1, player2, sess, training=TRAINING)
 
@@ -233,8 +322,10 @@ def main():
 
                     # Stochastic trainig
                     for target, current_board in zip(targets, player.board_position_log):
+                        nn_input = player.board_state_to_nn_input(current_board)
+
                         sess.run([train_step],
-                                 feed_dict={input_positions: [current_board], target_input: [target]})
+                                 feed_dict={input_positions: [nn_input], target_input: [target]})
 
                         # Batch training
                         # sess.run([train_step],
