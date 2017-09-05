@@ -101,3 +101,9 @@ ENV/
 .mypy_cache/
 /.idea/
 /checkpoint
+cudnn64_5.dll
+cudnn64_6.dll
+python_test.py
+*.data-00000-of-00001
+*.index
+*.meta
