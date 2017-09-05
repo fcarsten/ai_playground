@@ -13,17 +13,45 @@ NAUGHT=0.0
 CROSS= 1.0
 
 class Board:
+    WIN_CHECK_DIRS = {0 : [(1,1), (1,0), (0,1)],
+                      1 : [(1,0)],
+                      2 : [(1,0), (1, -1)],
+                      3 : [(0,1)],
+                      6 : [(0,1)]}
+
+    def hash_value(self):
+        res = 0
+        for i in range(9):
+            res *= 3
+            res += self.state[i]*2
+
+        return res
+
     DIRS = []
     for k in range(-1,2):
         for j in range(-1,2):
             if(k!=0 or j!= 0):
                 DIRS.append((k,j))
 
+    @staticmethod
+    def other_side(side):
+        if side == EMPTY:
+            raise ValueError("EMPTY has no 'other side'")
+
+        if side==CROSS:
+            return NAUGHT
+
+        if side== NAUGHT:
+            return CROSS
+
+        raise ValueError("{} is not a valid side".format(side))
+
     def __init__(self, s= None):
-        self.state = s
-        if not self.state:
+        if s is None:
             self.state = np.ndarray(shape=(1,9), dtype=float)[0]
             self.reset()
+        else:
+            self.state = s.copy()
 
     def reset(self) :
         self.state.fill(EMPTY)
@@ -88,10 +116,30 @@ class Board:
         return EMPTY
 
     def check_win(self):
+        return self.check_win_new()
+        # res1 = self.check_win_old()
+        # res2 = self.check_win_new()
+        #
+        # if res1 != res2:
+        #     print("New check win is wrong")
+        #
+        # return res1
+
+    def check_win_old(self):
         for i in range(9):
             if self.state[i] != EMPTY:
                 for d in self.DIRS:
                     res = self.check_win_in_dir(i, d)
+                    if res != EMPTY:
+                        return res
+
+        return EMPTY
+
+    def check_win_new(self):
+        for start_pos in self.WIN_CHECK_DIRS:
+            if self.state[start_pos]!= EMPTY:
+                for dir in self.WIN_CHECK_DIRS[start_pos]:
+                    res = self.check_win_in_dir(start_pos, dir)
                     if res != EMPTY:
                         return res
 
