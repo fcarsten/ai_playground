@@ -10,7 +10,7 @@ import ttt_board as ttt
 import os.path
 
 BOARD_SIZE = 9
-LEARNING_RATE = 0.001
+LEARNING_RATE = 0.01
 MODEL_NAME = 'tic-tac-toe-model-binary'
 
 
@@ -32,15 +32,17 @@ def add_layer(input_tensor, output_size, normalize=None):
 def build_graph():
     input_positions = tf.placeholder(tf.float32, shape=(None, BOARD_SIZE * 3), name='inputs')
     target_input = tf.placeholder(tf.float32, shape=(None, BOARD_SIZE), name='train_inputs')
-    target = tf.nn.softmax(target_input)
+    target = target_input# tf.nn.softmax(target_input)
 
-    net = add_layer(input_positions, BOARD_SIZE * BOARD_SIZE, tf.tanh)
+    net = input_positions
+    #net = add_layer(input_positions, BOARD_SIZE * 9, tf.tanh)
+    net = add_layer(net, BOARD_SIZE * 3, tf.tanh)
 
     # net = add_layer(net, BOARD_SIZE*BOARD_SIZE*BOARD_SIZE, tf.tanh)
-    #
-    # net = add_layer(net, BOARD_SIZE*BOARD_SIZE*BOARD_SIZE, tf.tanh)
-    #
-    # net = add_layer(net, BOARD_SIZE*BOARD_SIZE, tf.tanh)
+
+    # net = add_layer(net, BOARD_SIZE*BOARD_SIZE*BOARD_SIZE * 9, tf.tanh)
+
+#    net = add_layer(net, BOARD_SIZE*BOARD_SIZE, tf.tanh)
 
     logits = add_layer(net, BOARD_SIZE)
 
@@ -77,7 +79,7 @@ def load_graph(sess):
 
 
 WIN_REWARD = 1.0
-DRAW_REWARD = 1.0
+DRAW_REWARD = 0.6
 LOSS_REWARD = 0.0
 
 PLAYER1_WIN = 1
@@ -190,12 +192,20 @@ class Agent:
         self.reward = DRAW_REWARD
         self.random_move_prob = 0.1
 
+    def get_probs(self, sess, input_pos):
+        probs = sess.run([self.probabilities], feed_dict={self.input_positions: [input_pos]})
+        return probs[0][0]
+
     def move(self, sess, board, training):
         self.board_position_log.append(board.state.copy())
         nn_input = self.board_state_to_nn_input(board.state)
 
         probs = sess.run([self.probabilities], feed_dict={self.input_positions: [nn_input]})[0][0]
         self.probs_log.append(np.copy(probs))
+
+        if len(self.action_log) > 0:
+            self.next_max_log.append(np.max(probs))
+
         #        probs = [p * (index not in action_log) for index, p in enumerate(probs)]
         for index, p in enumerate(probs):
             if not board.is_legal(index):
@@ -211,8 +221,6 @@ class Agent:
         _, res, finished = board.move(move, self.side)
 
         self.action_log.append(move)
-        if len(self.action_log) > 1:
-            self.next_max_log.append(np.max(probs))
 
         return res, finished
 
@@ -283,10 +291,19 @@ def target_calculator(action_log, probs_log, next_max_log, reward):
     game_length = len(action_log)
     targets = []
 
-    for i in range(game_length - 1, 0, -1):
+    for i in range(game_length - 1, -1, -1):
         target = np.copy(probs_log[i])
+
+        old_action_prob = target[action_log[i]]
+
         target[action_log[i]] = reward + 0.99 * next_max_log[i]
-        # reward /= 2
+        target = [t/sum(target) for t in target]
+        new_action_prob = target[action_log[i]]
+        # if reward == WIN_REWARD and old_action_prob > new_action_prob:
+        #     print 'winning move punished'
+        # elif reward == LOSS_REWARD and old_action_prob < new_action_prob:
+        #     print 'losing move punished'
+#        reward /= 9.0
         targets.append(target)
 
     targets.reverse()
@@ -310,7 +327,8 @@ def main():
     for game in range(1000000000):
         # player1 = RandomPlayer(ttt.NAUGHT)
         player1 = Agent(ttt.NAUGHT, input_positions, probabilities)
-        player2 = MinMaxAgent(ttt.CROSS)
+        player2 = RandomPlayer(ttt.CROSS)
+        # player2 = MinMaxAgent(ttt.CROSS)
         # player2 = Agent(ttt.CROSS, input_positions, probabilities)
 
         play_game(player1, player2, sess, training=TRAINING)
@@ -321,12 +339,21 @@ def main():
                     targets = target_calculator(player.action_log, player.probs_log, player.next_max_log, player.reward)
 
                     # Stochastic trainig
-                    for target, current_board in zip(targets, player.board_position_log):
+                    for target, current_board, old_probs, old_action in zip(targets, player.board_position_log, player.probs_log, player.action_log):
                         nn_input = player.board_state_to_nn_input(current_board)
 
                         sess.run([train_step],
                                  feed_dict={input_positions: [nn_input], target_input: [target]})
 
+                        # new_probs = player.get_probs(sess, nn_input)
+                        #
+                        # probs_diff = old_probs-new_probs
+                        # print(probs_diff)
+                        # if player.reward == LOSS_REWARD and probs_diff[old_action] < 0:
+                        #     print ('arg: loss rewarded')
+                        # elif player.reward == WIN_REWARD and probs_diff[old_action] > 0:
+                        #     print ('arg: win punished')
+                        #print "Prob change move with reward {} is {}.".format(player.reward, probs_diff[old_action])
                         # Batch training
                         # sess.run([train_step],
                         #          feed_dict={input_positions: player.board_position_log, target_input: targets})
@@ -336,8 +363,8 @@ def main():
             if losses > 0:
                 print('Ratio:{}'.format(wins * 1.0 / losses))
 
-            if game % 1000 == 0:
-                saver.save(sess, MODEL_NAME)
+            # if game % 1000 == 0:
+            #     saver.save(sess, MODEL_NAME)
 
 
 if __name__ == '__main__':
