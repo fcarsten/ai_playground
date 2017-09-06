@@ -48,12 +48,11 @@ class RndMinMaxAgent:
                 action = index
                 best_moves = set([(min, action)])
             elif res == min:
+                action = index
                 best_moves.add((min, action))
 
         best_moves = tuple(best_moves)
         RndMinMaxAgent.cache[board_hash] = best_moves
-        if len(best_moves) >1:
-            print 'yeah'
 
         return random.choice(best_moves)
 
@@ -83,12 +82,11 @@ class RndMinMaxAgent:
                 action = index
                 best_moves = set([(max, action)])
             elif res == max:
+                action = index
                 best_moves.add((max, action))
 
         best_moves = tuple(best_moves)
         self.cache[board_hash] = best_moves
-        if len(best_moves) >1:
-            print 'yeah'
 
         return random.choice(best_moves)
 
