@@ -9,7 +9,8 @@ import os.path
 from Board import Board, BOARD_SIZE, EMPTY, WIN, DRAW, LOSE
 
 LEARNING_RATE = 0.01
-MODEL_NAME = './saved_models/tic-tac-toe-model-nna'
+MODEL_NAME = 'tic-tac-toe-model-nna'
+MODEL_PATH = './saved_models/'
 
 WIN_REWARD = 1.0
 DRAW_REWARD = 0.6
@@ -69,8 +70,8 @@ class NNAgent:
 
     @classmethod
     def load_graph(cls):
-        NNAgent.saver = tf.train.import_meta_graph(MODEL_NAME + '.meta')
-        NNAgent.saver.restore(NNAgent.sess, tf.train.latest_checkpoint('./'))
+        NNAgent.saver = tf.train.import_meta_graph(MODEL_PATH+MODEL_NAME + '.meta')
+        NNAgent.saver.restore(NNAgent.sess, tf.train.latest_checkpoint(MODEL_PATH))
 
         # all_vars = tf.get_collection('vars')
 
@@ -183,9 +184,9 @@ class NNAgent:
                               feed_dict={self.input_positions: [nn_input], self.target_input: [target]})
 
             if self.game_counter % 1000 == 0:
-                self.saver.save(self.sess, MODEL_NAME)
+                self.saver.save(self.sess, MODEL_PATH+MODEL_NAME)
 
-if os.path.exists(MODEL_NAME + '.meta'):
+if os.path.exists(MODEL_PATH+MODEL_NAME + '.meta'):
     NNAgent.load_graph()
 else:
     NNAgent.build_graph()

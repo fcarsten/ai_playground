@@ -8,6 +8,7 @@ from NeuralNetworkAgent import NNAgent
 from RandomPlayer import RandomPlayer
 
 from MinMaxAgent import MinMaxAgent
+from RndMinMaxAgent import RndMinMaxAgent
 
 DRAW = 0
 PLAYER1_WIN = 1
@@ -61,7 +62,7 @@ def main():
     # player_mm = MinMaxAgent()
 
     player1 = NNAgent()
-    player2 = MinMaxAgent()
+    player2 = RndMinMaxAgent()
 
     for game in range(1000000000):
         player1.new_game(NAUGHT)
