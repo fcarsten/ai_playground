@@ -63,18 +63,23 @@ def main():
 
     player1 = NNAgent()
     player2 = RndMinMaxAgent()
+    game = 0
 
-    for game in range(1000000000):
+    while True:
         player1.new_game(NAUGHT)
         player2.new_game(CROSS)
 
-        res = play_game(player1, player2)
+        play_game(player1, player2)
+        game += 1
+
+        player1.new_game(CROSS)
+        player2.new_game(NAUGHT)
+
+        play_game(player2, player1)
+        game += 1
 
         if game % 100 == 0:
-            print('Player 1: {} Player 2: {} Draws: {}'.format(wins, losses, draws))
-            if losses > 0:
-                print('Ratio:{}'.format(wins * 1.0 / losses))
-
+            print('Player 1: {}% Player 2: {}% Draws: {}%'.format(wins*100.0/game, losses*100.0/game, draws*100.0/game))
 
 if __name__ == '__main__':
     main()
