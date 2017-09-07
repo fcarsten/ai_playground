@@ -107,3 +107,5 @@ python_test.py
 *.data-00000-of-00001
 *.index
 *.meta
+tic_tac_toe/saved_models/checkpoint
+tic_tac_toe/saved_models/

@@ -2,13 +2,13 @@
 # Copyright 2017 Carsten Friedrich (Carsten.Friedrich@gmail.com). All rights reserved
 #
 
-from Board import Board, NAUGHT, CROSS, WIN, LOSE, NEUTRAL
+from tic_tac_toe.Board import Board, NAUGHT, CROSS, WIN, LOSE, NEUTRAL
 
-from NeuralNetworkAgent import NNAgent
-from RandomPlayer import RandomPlayer
+from tic_tac_toe.NeuralNetworkAgent import NNAgent
+from tic_tac_toe.RandomPlayer import RandomPlayer
 
-from MinMaxAgent import MinMaxAgent
-from RndMinMaxAgent import RndMinMaxAgent
+from tic_tac_toe.MinMaxAgent import MinMaxAgent
+from tic_tac_toe.RndMinMaxAgent import RndMinMaxAgent
 
 DRAW = 0
 PLAYER1_WIN = 1
@@ -61,19 +61,26 @@ def main():
     # player_rnd = RandomPlayer()
     # player_mm = MinMaxAgent()
 
-    player1 = NNAgent()
-    player2 = RndMinMaxAgent()
+    player1 = RndMinMaxAgent()
+    player2 = NNAgent()
 
-    for game in range(1000000000):
+    game = 0
+    while True:
         player1.new_game(NAUGHT)
         player2.new_game(CROSS)
 
         res = play_game(player1, player2)
+        game+=1
+        player1.new_game(CROSS)
+        player2.new_game(NAUGHT)
 
+        res = play_game(player2, player1)
+        game+=1
         if game % 100 == 0:
-            print('Player 1: {} Player 2: {} Draws: {}'.format(wins, losses, draws))
-            if losses > 0:
-                print('Ratio:{}'.format(wins * 1.0 / losses))
+
+            print('Player 1: {}% Player 2: {}% Draws: {}%'.format(wins*100.0/(game+1.0), losses*100.0/(game+1.0), draws*100.0/(game+1.0)))
+            # if losses > 0:
+            #     print('Ratio:{}'.format(wins * 1.0 / losses))
 
 
 if __name__ == '__main__':
