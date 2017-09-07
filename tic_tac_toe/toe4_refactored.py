@@ -5,6 +5,7 @@
 from Board import Board, NAUGHT, CROSS, WIN, LOSE, NEUTRAL
 
 from NeuralNetworkAgent import NNAgent
+
 from RandomPlayer import RandomPlayer
 
 from MinMaxAgent import MinMaxAgent
@@ -57,12 +58,13 @@ def play_game(player1, player2):
 
 
 def main():
+    global wins, losses, draws
     # player_nna = NNAgent()
     # player_rnd = RandomPlayer()
     # player_mm = MinMaxAgent()
 
     player1 = NNAgent()
-    player2 = RndMinMaxAgent()
+    player2 = MinMaxAgent()
     game = 0
 
     while True:
@@ -72,14 +74,16 @@ def main():
         play_game(player1, player2)
         game += 1
 
-        player1.new_game(CROSS)
-        player2.new_game(NAUGHT)
-
-        play_game(player2, player1)
-        game += 1
+        # player1.new_game(CROSS)
+        # player2.new_game(NAUGHT)
+        #
+        # play_game(player2, player1)
+        # game += 1
 
         if game % 100 == 0:
             print('Player 1: {}% Player 2: {}% Draws: {}%'.format(wins*100.0/game, losses*100.0/game, draws*100.0/game))
+            wins= losses= draws= game= 0
+            # NNAgent.TRAINING = False
 
 if __name__ == '__main__':
     main()
