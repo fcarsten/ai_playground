@@ -57,31 +57,32 @@ def play_game(player1, player2):
 
 
 def main():
+    global wins, losses, draws
     # player_nna = NNAgent()
     # player_rnd = RandomPlayer()
     # player_mm = MinMaxAgent()
 
-    player1 = RndMinMaxAgent()
-    player2 = NNAgent()
-
+    player1 = NNAgent()
+    player2 = MinMaxAgent()
     game = 0
+
     while True:
         player1.new_game(NAUGHT)
         player2.new_game(CROSS)
 
-        res = play_game(player1, player2)
-        game+=1
-        player1.new_game(CROSS)
-        player2.new_game(NAUGHT)
+        play_game(player1, player2)
+        game += 1
 
-        res = play_game(player2, player1)
-        game+=1
+        # player1.new_game(CROSS)
+        # player2.new_game(NAUGHT)
+        #
+        # play_game(player2, player1)
+        # game += 1
+
         if game % 100 == 0:
-
-            print('Player 1: {}% Player 2: {}% Draws: {}%'.format(wins*100.0/(game+1.0), losses*100.0/(game+1.0), draws*100.0/(game+1.0)))
-            # if losses > 0:
-            #     print('Ratio:{}'.format(wins * 1.0 / losses))
-
+            print('Player 1: {}% Player 2: {}% Draws: {}%'.format(wins*100.0/game, losses*100.0/game, draws*100.0/game))
+            wins= losses= draws= game= 0
+            # NNAgent.TRAINING = False
 
 if __name__ == '__main__':
     main()

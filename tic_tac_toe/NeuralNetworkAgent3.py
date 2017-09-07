@@ -1,24 +1,22 @@
 #
 # Copyright 2017 Carsten Friedrich (Carsten.Friedrich@gmail.com). All rights reserved
 #
-# After a short learning phase this agent plays pretty well against deterministic MinMax.
-# There are some hefty swing from always winning to always losing
-# After a while in stabilizes at 50 / 50 and then decreases steadily to less then 60 / 40
-# Then increases again to 100% draw and seems to stay there
+#
+# Like NeuralNetworkAgent, but trying to make it play better against a non-deterministic MinMax
 #
 
 import numpy as np
 import tensorflow as tf
 import os.path
 
-from tic_tac_toe.Board import Board, BOARD_SIZE, EMPTY, WIN, DRAW, LOSE
+from Board import Board, BOARD_SIZE, EMPTY, WIN, DRAW, LOSE
 
-LEARNING_RATE = 0.01
+LEARNING_RATE = 0.001
 MODEL_NAME = 'tic-tac-toe-model-nna'
 MODEL_PATH = './saved_models/'
 
 WIN_REWARD = 1.0
-DRAW_REWARD = 0.6
+DRAW_REWARD = 1.0
 LOSS_REWARD = 0.0
 
 TRAINING = True
@@ -26,12 +24,6 @@ TRAINING = True
 
 class NNAgent:
     game_counter = 0
-    # side = None
-    # board_position_log = []
-    # action_log = []
-    # next_max_log = []
-    # probs_log = []
-    # reward = DRAW_REWARD
     random_move_prob = 0.1
 
     sess = tf.Session()
@@ -40,8 +32,9 @@ class NNAgent:
     def add_layer(input_tensor, output_size, normalize=None):
         input_tensor_size = input_tensor.shape[1].value
         w1 = tf.Variable(tf.truncated_normal([input_tensor_size, output_size],
-                                             stddev=0.1 / np.sqrt(float(input_tensor_size * output_size))))
-        b1 = tf.Variable(tf.zeros([1, output_size], tf.float32))
+                                             stddev=0.1 / np.sqrt(float(input_tensor_size * output_size)),
+                                             dtype=tf.float64))
+        b1 = tf.Variable(tf.zeros([1, output_size], tf.float64))
         if normalize is None:
             return tf.matmul(input_tensor, w1) + b1
 
@@ -49,13 +42,16 @@ class NNAgent:
 
     @classmethod
     def build_graph(cls):
-        NNAgent.input_positions = tf.placeholder(tf.float32, shape=(None, BOARD_SIZE * 3), name='inputs')
-        NNAgent.target_input = tf.placeholder(tf.float32, shape=(None, BOARD_SIZE), name='train_inputs')
-        target = NNAgent.target_input  # tf.nn.softmax(target_input)
+        NNAgent.input_positions = tf.placeholder(tf.float64, shape=(None, BOARD_SIZE * 3), name='inputs')
+        NNAgent.target_input = tf.placeholder(tf.float64, shape=(None, BOARD_SIZE), name='train_inputs')
+        # target = NNAgent.target_input
+        target = tf.nn.softmax(NNAgent.target_input)
 
         net = NNAgent.input_positions
         # net = add_layer(input_positions, BOARD_SIZE * 9, tf.tanh)
-        net = cls.add_layer(net, BOARD_SIZE * 3, tf.tanh)
+        net = cls.add_layer(net, BOARD_SIZE * 3, tf.nn.relu)
+        net = cls.add_layer(net, BOARD_SIZE * 3*3, tf.nn.relu)
+        net = cls.add_layer(net, BOARD_SIZE * 3, tf.nn.relu)
 
         # net = add_layer(net, BOARD_SIZE*BOARD_SIZE*BOARD_SIZE, tf.tanh)
 
@@ -113,19 +109,23 @@ class NNAgent:
         game_length = len(self.action_log)
         targets = []
 
+        r = self.reward
         for i in range(game_length - 1, -1, -1):
             target = np.copy(self.probs_log[i])
+            current_action  = self.action_log[i]
+            old_action_prob = target[current_action]
+            target_action_prob = r + 0.99 * self.next_max_log[i]
+            target_action_prob = 0.99 * self.next_max_log[i]
+            target[current_action] = target_action_prob
 
-            old_action_prob = target[self.action_log[i]]
-
-            target[self.action_log[i]] = self.reward + 0.99 * self.next_max_log[i]
-            target = [t / sum(target) for t in target]
-            new_action_prob = target[self.action_log[i]]
-            # if reward == WIN_REWARD and old_action_prob > new_action_prob:
+            st = sum(target)
+            target = [t / st for t in target]
+            new_action_prob = target[current_action]
+            # if self.reward > 0 and old_action_prob > new_action_prob + 1e-10:
             #     print 'winning move punished'
-            # elif reward == LOSS_REWARD and old_action_prob < new_action_prob:
-            #     print 'losing move punished'
-            #        reward /= 9.0
+            # elif self.reward == LOSS_REWARD and old_action_prob + 1e-10 < new_action_prob :
+            #     print 'losing move rewarded'
+            r /= 9.0
             targets.append(target)
 
         targets.reverse()
@@ -188,8 +188,22 @@ class NNAgent:
                 self.sess.run([self.train_step],
                               feed_dict={self.input_positions: [nn_input], self.target_input: [target]})
 
-            if self.game_counter % 1000 == 0:
-                self.saver.save(self.sess, MODEL_PATH+MODEL_NAME)
+                new_probs = NNAgent.sess.run([self.probabilities], feed_dict={self.input_positions: [nn_input]})[0][0]
+
+                # old_action_prob = old_probs[old_action]
+                # new_action_prob = new_probs[old_action]
+                # if self.reward >0 and old_action_prob > new_action_prob + 1e-10:
+                #     print 'winning move punished'
+                # elif self.reward == LOSS_REWARD and old_action_prob + 1e-10 < new_action_prob:
+                #     print 'losing move rewarded'
+
+
+                # if self.game_counter % 1000 == 0:
+                #     self.saver.save(self.sess, MODEL_PATH+MODEL_NAME)
+
+
+        # vars = tf.trainable_variables()
+        # print(len(vars))
 
 if os.path.exists(MODEL_PATH+MODEL_NAME + '.meta'):
     NNAgent.load_graph()

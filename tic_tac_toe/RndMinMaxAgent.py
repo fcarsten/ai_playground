@@ -53,8 +53,6 @@ class RndMinMaxAgent:
 
         best_moves = tuple(best_moves)
         RndMinMaxAgent.cache[board_hash] = best_moves
-        if len(best_moves) >1:
-            print('yeah')
 
         return random.choice(best_moves)
 
@@ -89,8 +87,6 @@ class RndMinMaxAgent:
 
         best_moves = tuple(best_moves)
         self.cache[board_hash] = best_moves
-        if len(best_moves) >1:
-            print('yeah')
 
         return random.choice(best_moves)
 
