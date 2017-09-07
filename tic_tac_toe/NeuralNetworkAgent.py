@@ -1,6 +1,11 @@
 #
 # Copyright 2017 Carsten Friedrich (Carsten.Friedrich@gmail.com). All rights reserved
 #
+# After a short learning phase this agent plays pretty well against deterministic MinMax.
+# There are some hefty swing from always winning to always losing
+# After a while in stabilizes at 50 / 50 and then decreases steadily to less then 60 / 40
+# Then increases again to 100% draw and seems to stay there
+#
 
 import numpy as np
 import tensorflow as tf
