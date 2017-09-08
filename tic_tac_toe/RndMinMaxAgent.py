@@ -37,7 +37,7 @@ class RndMinMaxAgent:
         min = 0.5  # 0.5 means DRAW
         action = -1
 
-        best_moves = set([(min, action)])
+        best_moves = {(min, action)}
         for index in [i for i, e in enumerate(board.state) if board.state[i] == EMPTY]:
             b = Board(board.state)
             b.move(index, board.other_side(self.side))
@@ -46,7 +46,7 @@ class RndMinMaxAgent:
             if res < min or action == -1:
                 min = res
                 action = index
-                best_moves = set([(min, action)])
+                best_moves = {(min, action)}
             elif res == min:
                 action = index
                 best_moves.add((min, action))
@@ -71,7 +71,7 @@ class RndMinMaxAgent:
         max = 0.5  # 0.5 means DRAW
         action = -1
 
-        best_moves = set([(max, action)])
+        best_moves = {(max, action)}
         for index in [i for i, e in enumerate(board.state) if board.state[i] == EMPTY]:
             b = Board(board.state)
             b.move(index, self.side)
@@ -80,7 +80,7 @@ class RndMinMaxAgent:
             if res > max or action == -1:
                 max = res
                 action = index
-                best_moves = set([(max, action)])
+                best_moves = {(max, action)}
             elif res == max:
                 action = index
                 best_moves.add((max, action))

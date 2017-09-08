@@ -4,7 +4,8 @@
 
 from tic_tac_toe.Board import Board, NAUGHT, CROSS, WIN, LOSE, NEUTRAL
 
-from tic_tac_toe.NeuralNetworkAgent import NNAgent
+from tic_tac_toe.NeuralNetworkAgent3 import NNAgent
+
 from tic_tac_toe.RandomPlayer import RandomPlayer
 
 from tic_tac_toe.MinMaxAgent import MinMaxAgent
@@ -63,7 +64,7 @@ def main():
     # player_mm = MinMaxAgent()
 
     player1 = NNAgent()
-    player2 = MinMaxAgent()
+    player2 = RndMinMaxAgent()
     game = 0
 
     while True:

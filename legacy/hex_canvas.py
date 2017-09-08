@@ -1,4 +1,4 @@
-from hex_board import Board
+from legacy.hex_board import Board
 
 top_header = ' _  '
 # header = '_'

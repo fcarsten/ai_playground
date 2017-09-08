@@ -6,9 +6,7 @@
 
 import tensorflow as tf
 import numpy as np
-#%matplotlib inline
-import pylab
-import ttt_board as ttt
+import legacy.ttt_board as ttt
 
 BOARD_SIZE = 9
 
@@ -17,16 +15,16 @@ output_units = BOARD_SIZE
 
 input_positions = tf.placeholder(tf.float32, shape=(1, BOARD_SIZE))
 target_input = tf.placeholder(tf.float32, shape=(1, BOARD_SIZE))
-target =          tf.nn.softmax(target_input)
-learning_rate =   tf.placeholder(tf.float32, shape=[])
+target = tf.nn.softmax(target_input)
+learning_rate = tf.placeholder(tf.float32, shape=[])
 # Generate hidden layer
 W1 = tf.Variable(tf.truncated_normal([BOARD_SIZE, hidden_units],
-             stddev=0.1 / np.sqrt(float(BOARD_SIZE))))
+                                     stddev=0.1 / np.sqrt(float(BOARD_SIZE))))
 b1 = tf.Variable(tf.zeros([1, hidden_units]))
 h1 = tf.tanh(tf.matmul(input_positions, W1) + b1)
 # Second layer -- linear classifier for action logits
 W2 = tf.Variable(tf.truncated_normal([hidden_units, output_units],
-             stddev=0.1 / np.sqrt(float(hidden_units))))
+                                     stddev=0.1 / np.sqrt(float(hidden_units))))
 b2 = tf.Variable(tf.zeros([1, output_units]))
 logits = tf.matmul(h1, W2) + b2
 probabilities = tf.nn.softmax(logits)
@@ -46,9 +44,10 @@ LOSS_REWARD = 0
 
 TRAINING = True
 
-wins=0
-losses=0
-draws=0
+wins = 0
+losses = 0
+draws = 0
+
 
 def play_game(training=TRAINING):
     global wins, losses, draws
@@ -66,7 +65,7 @@ def play_game(training=TRAINING):
 
     while not dead:
         board_position_log.append(board.state.copy())
-        probs = sess.run([probabilities], feed_dict={input_positions:[board.state]})[0][0]
+        probs = sess.run([probabilities], feed_dict={input_positions: [board.state]})[0][0]
         probs_log.append(np.copy(probs))
         #        probs = [p * (index not in action_log) for index, p in enumerate(probs)]
         for index, p in enumerate(probs):
@@ -96,27 +95,28 @@ def play_game(training=TRAINING):
     if res == ttt.NEUTRAL:
         reward = DRAW_REWARD
         next_max_log.append(0.5)
-        draws = draws+1
+        draws = draws + 1
     elif res == ttt.WIN:
         reward = WIN_REWARD
         next_max_log.append(1)
-        wins = wins+1
+        wins = wins + 1
     else:
         reward = LOSS_REWARD
         next_max_log.append(0)
-        losses=losses+1
+        losses = losses + 1
 
     return board_position_log, action_log, probs_log, next_max_log, reward
+
 
 def rewards_calculator(game_length, reward):
     rewards = np.ndarray(game_length)
     for i in range(game_length):
-        rewards[game_length-(i+1)] = reward
-        reward = reward*gamma
+        rewards[game_length - (i + 1)] = reward
+        reward = reward * gamma
     return rewards
 
-def target_calculator(action_log, probs_log, next_max_log, reward):
 
+def target_calculator(action_log, probs_log, next_max_log, reward):
     game_length = len(action_log)
     targets = []
 
@@ -127,23 +127,24 @@ def target_calculator(action_log, probs_log, next_max_log, reward):
 
     return targets
 
+
 TRAINING = True  # Boolean specifies training mode
-ALPHA = 0.06     # step size
+ALPHA = 0.06  # step size
 
 for game in range(1000000000):
     board_position_log, action_log, probs_log, next_max_log, reward = play_game(training=TRAINING)
 
-#    rewards_log = rewards_calculator(len(board_position_log), reward)
+    #    rewards_log = rewards_calculator(len(board_position_log), reward)
     targets = target_calculator(action_log, probs_log, next_max_log, reward)
 
     for target, current_board, action in zip(targets, board_position_log, action_log):
         # Take step along gradient
         if TRAINING:
             sess.run([train_step],
-                feed_dict={input_positions:[current_board], target_input:[target], learning_rate:0.001})
+                     feed_dict={input_positions: [current_board], target_input: [target], learning_rate: 0.001})
 
     e = 1. / ((game / 50) + 10)
-    if(game % 100 == 0):
+    if (game % 100 == 0):
         print('wins: {} Losses: {} Draws: {}'.format(wins, losses, draws))
-        if(losses>0):
-            print ('Ratio:{}'.format(wins*1.0/losses))
+        if (losses > 0):
+            print('Ratio:{}'.format(wins * 1.0 / losses))

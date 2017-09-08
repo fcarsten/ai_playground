@@ -9,10 +9,10 @@ import numpy as np
 import tensorflow as tf
 import os.path
 
-from Board import Board, BOARD_SIZE, EMPTY, WIN, DRAW, LOSE
+from tic_tac_toe.Board import Board, BOARD_SIZE, EMPTY, WIN, DRAW, LOSE
 
 LEARNING_RATE = 0.001
-MODEL_NAME = 'tic-tac-toe-model-nna'
+MODEL_NAME = 'tic-tac-toe-model-nna3'
 MODEL_PATH = './saved_models/'
 
 WIN_REWARD = 1.0
@@ -24,7 +24,7 @@ TRAINING = True
 
 class NNAgent:
     game_counter = 0
-    random_move_prob = 0.1
+    random_move_prob = 0.5
 
     sess = tf.Session()
 
@@ -44,14 +44,14 @@ class NNAgent:
     def build_graph(cls):
         NNAgent.input_positions = tf.placeholder(tf.float64, shape=(None, BOARD_SIZE * 3), name='inputs')
         NNAgent.target_input = tf.placeholder(tf.float64, shape=(None, BOARD_SIZE), name='train_inputs')
-        # target = NNAgent.target_input
-        target = tf.nn.softmax(NNAgent.target_input)
+        target = NNAgent.target_input
+        # target = tf.nn.softmax(NNAgent.target_input)
 
         net = NNAgent.input_positions
         # net = add_layer(input_positions, BOARD_SIZE * 9, tf.tanh)
-        net = cls.add_layer(net, BOARD_SIZE * 3, tf.nn.relu)
-        net = cls.add_layer(net, BOARD_SIZE * 3*3, tf.nn.relu)
-        net = cls.add_layer(net, BOARD_SIZE * 3, tf.nn.relu)
+        # net = cls.add_layer(net, BOARD_SIZE * 3, tf.nn.relu)
+        net = cls.add_layer(net, BOARD_SIZE * 3*340, tf.nn.relu)
+        # net = cls.add_layer(net, BOARD_SIZE * 3, tf.nn.relu)
 
         # net = add_layer(net, BOARD_SIZE*BOARD_SIZE*BOARD_SIZE, tf.tanh)
 
@@ -62,7 +62,7 @@ class NNAgent:
         logits = cls.add_layer(net, BOARD_SIZE)
 
         NNAgent.probabilities = tf.nn.softmax(logits, name='probabilities')
-        mse = tf.losses.mean_squared_error(predictions=NNAgent.probabilities, labels=target)
+        mse = tf.losses.mean_squared_error(predictions=logits, labels=target)
         NNAgent.train_step = tf.train.GradientDescentOptimizer(learning_rate=LEARNING_RATE).minimize(mse, name='train')
 
         init = tf.global_variables_initializer()
@@ -188,7 +188,7 @@ class NNAgent:
                 self.sess.run([self.train_step],
                               feed_dict={self.input_positions: [nn_input], self.target_input: [target]})
 
-                new_probs = NNAgent.sess.run([self.probabilities], feed_dict={self.input_positions: [nn_input]})[0][0]
+                # new_probs = NNAgent.sess.run([self.probabilities], feed_dict={self.input_positions: [nn_input]})[0][0]
 
                 # old_action_prob = old_probs[old_action]
                 # new_action_prob = new_probs[old_action]
@@ -198,8 +198,8 @@ class NNAgent:
                 #     print 'losing move rewarded'
 
 
-                # if self.game_counter % 1000 == 0:
-                #     self.saver.save(self.sess, MODEL_PATH+MODEL_NAME)
+                if self.game_counter % 1000 == 0:
+                    self.saver.save(self.sess, MODEL_PATH+MODEL_NAME)
 
 
         # vars = tf.trainable_variables()

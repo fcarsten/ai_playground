@@ -8,54 +8,55 @@ LOSE = -1
 WIN = 1
 NEUTRAL = DRAW = 0
 
-EMPTY=0.5
-NAUGHT=0.0
-CROSS= 1.0
+EMPTY = 0.5
+NAUGHT = 0.0
+CROSS = 1.0
 
 BOARD_SIZE = 9
 
+
 class Board:
-    WIN_CHECK_DIRS = {0 : [(1,1), (1,0), (0,1)],
-                      1 : [(1,0)],
-                      2 : [(1,0), (1, -1)],
-                      3 : [(0,1)],
-                      6 : [(0,1)]}
+    WIN_CHECK_DIRS = {0: [(1, 1), (1, 0), (0, 1)],
+                      1: [(1, 0)],
+                      2: [(1, 0), (1, -1)],
+                      3: [(0, 1)],
+                      6: [(0, 1)]}
 
     def hash_value(self):
         res = 0
         for i in range(9):
             res *= 3
-            res += self.state[i]*2
+            res += self.state[i] * 2
 
         return res
 
     DIRS = []
-    for k in range(-1,2):
-        for j in range(-1,2):
-            if(k!=0 or j!= 0):
-                DIRS.append((k,j))
+    for k in range(-1, 2):
+        for j in range(-1, 2):
+            if (k != 0 or j != 0):
+                DIRS.append((k, j))
 
     @staticmethod
     def other_side(side):
         if side == EMPTY:
             raise ValueError("EMPTY has no 'other side'")
 
-        if side==CROSS:
+        if side == CROSS:
             return NAUGHT
 
-        if side== NAUGHT:
+        if side == NAUGHT:
             return CROSS
 
         raise ValueError("{} is not a valid side".format(side))
 
-    def __init__(self, s= None):
+    def __init__(self, s=None):
         if s is None:
-            self.state = np.ndarray(shape=(1,9), dtype=float)[0]
+            self.state = np.ndarray(shape=(1, 9), dtype=float)[0]
             self.reset()
         else:
             self.state = s.copy()
 
-    def reset(self) :
+    def reset(self):
         self.state.fill(EMPTY)
 
     def num_empty(self):
@@ -68,23 +69,23 @@ class Board:
                 if index == 0:
                     return i
                 else:
-                    index = index-1
+                    index = index - 1
 
     def is_legal(self, pos):
         return self.state[pos] == EMPTY
 
     def move(self, position, type):
-        if self.state[position]!=EMPTY:
+        if self.state[position] != EMPTY:
             print('Illegal move')
             raise ValueError("Invalid move")
-#            return self.state, ILLEGAL, True
+        #            return self.state, ILLEGAL, True
 
         self.state[position] = type
 
-        if(self.check_win() != EMPTY):
+        if (self.check_win() != EMPTY):
             return self.state, WIN, True
 
-        if(self.num_empty()==0):
+        if (self.num_empty() == 0):
             return self.state, NEUTRAL, True
 
         return self.state, NEUTRAL, False
@@ -93,13 +94,13 @@ class Board:
         row = pos // 3
         col = pos % 3
         row += dir[0]
-        if(row<0 or row>2):
+        if (row < 0 or row > 2):
             return -1
         col += dir[1]
-        if(col<0 or col>2):
+        if (col < 0 or col > 2):
             return -1
 
-        return row*3+col
+        return row * 3 + col
 
     def check_win_in_dir(self, pos, dir):
         c = self.state[pos]
@@ -109,10 +110,10 @@ class Board:
         p1 = int(self.apply_dir(pos, dir))
         p2 = int(self.apply_dir(p1, dir))
 
-        if(p1 == -1 or p2 ==-1):
+        if (p1 == -1 or p2 == -1):
             return EMPTY
 
-        if(c == self.state[p1] and c == self.state[p2]):
+        if (c == self.state[p1] and c == self.state[p2]):
             return c
 
         return EMPTY
@@ -139,7 +140,7 @@ class Board:
 
     def check_win_new(self):
         for start_pos in self.WIN_CHECK_DIRS:
-            if self.state[start_pos]!= EMPTY:
+            if self.state[start_pos] != EMPTY:
                 for dir in self.WIN_CHECK_DIRS[start_pos]:
                     res = self.check_win_in_dir(start_pos, dir)
                     if res != EMPTY:
@@ -148,7 +149,7 @@ class Board:
         return EMPTY
 
     def state_to_char(self, pos):
-        if(self.state[pos]) == EMPTY:
+        if (self.state[pos]) == EMPTY:
             return ' '
 
         if (self.state[pos]) == NAUGHT:
@@ -158,11 +159,10 @@ class Board:
 
     def print_board(self):
         for i in range(3):
-            str= self.state_to_char(i*3)+'|' + self.state_to_char(i*3+1)+'|' + self.state_to_char(i*3+2)
+            str = self.state_to_char(i * 3) + '|' + self.state_to_char(i * 3 + 1) + '|' + self.state_to_char(i * 3 + 2)
 
             print(str)
             if i != 2:
-                print ("-----")
+                print("-----")
 
         print("")
-

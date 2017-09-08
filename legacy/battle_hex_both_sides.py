@@ -6,7 +6,7 @@
 
 import tensorflow as tf
 import numpy as np
-from hex_board import Board, PLAYER_ONE, PLAYER_TWO
+from legacy.hex_board import Board, PLAYER_ONE, PLAYER_TWO
 
 BOARD_SIZE = 5
 STATE_SIZE = BOARD_SIZE * BOARD_SIZE
