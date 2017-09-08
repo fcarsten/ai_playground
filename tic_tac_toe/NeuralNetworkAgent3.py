@@ -12,7 +12,7 @@ import os.path
 from Board import Board, BOARD_SIZE, EMPTY, WIN, DRAW, LOSE
 
 LEARNING_RATE = 0.001
-MODEL_NAME = 'tic-tac-toe-model-nna'
+MODEL_NAME = 'tic-tac-toe-model-nna3'
 MODEL_PATH = './saved_models/'
 
 WIN_REWARD = 1.0
@@ -49,9 +49,9 @@ class NNAgent:
 
         net = NNAgent.input_positions
         # net = add_layer(input_positions, BOARD_SIZE * 9, tf.tanh)
-        net = cls.add_layer(net, BOARD_SIZE * 3, tf.nn.relu)
-        net = cls.add_layer(net, BOARD_SIZE * 3*3, tf.nn.relu)
-        net = cls.add_layer(net, BOARD_SIZE * 3, tf.nn.relu)
+        # net = cls.add_layer(net, BOARD_SIZE * 3, tf.nn.relu)
+        net = cls.add_layer(net, BOARD_SIZE * 3*340, tf.nn.relu)
+        # net = cls.add_layer(net, BOARD_SIZE * 3, tf.nn.relu)
 
         # net = add_layer(net, BOARD_SIZE*BOARD_SIZE*BOARD_SIZE, tf.tanh)
 
@@ -188,7 +188,7 @@ class NNAgent:
                 self.sess.run([self.train_step],
                               feed_dict={self.input_positions: [nn_input], self.target_input: [target]})
 
-                new_probs = NNAgent.sess.run([self.probabilities], feed_dict={self.input_positions: [nn_input]})[0][0]
+                # new_probs = NNAgent.sess.run([self.probabilities], feed_dict={self.input_positions: [nn_input]})[0][0]
 
                 # old_action_prob = old_probs[old_action]
                 # new_action_prob = new_probs[old_action]
@@ -198,8 +198,8 @@ class NNAgent:
                 #     print 'losing move rewarded'
 
 
-                # if self.game_counter % 1000 == 0:
-                #     self.saver.save(self.sess, MODEL_PATH+MODEL_NAME)
+                if self.game_counter % 1000 == 0:
+                    self.saver.save(self.sess, MODEL_PATH+MODEL_NAME)
 
 
         # vars = tf.trainable_variables()
