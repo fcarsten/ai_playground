@@ -6,9 +6,7 @@
 
 import tensorflow as tf
 import numpy as np
-# %matplotlib inline
-# import pylab
-import ttt_board as ttt
+import legacy.ttt_board as ttt
 import os.path
 
 BOARD_SIZE = 9

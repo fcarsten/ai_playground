@@ -2,7 +2,7 @@
 # Copyright 2017 Carsten Friedrich (Carsten.Friedrich@gmail.com). All rights reserved
 #
 
-from Board import Board, EMPTY, WIN, LOSE, NEUTRAL
+from tic_tac_toe.Board import Board, EMPTY, WIN, LOSE, NEUTRAL
 
 
 class MinMaxAgent:

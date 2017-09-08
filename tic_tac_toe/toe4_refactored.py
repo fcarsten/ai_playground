@@ -2,14 +2,14 @@
 # Copyright 2017 Carsten Friedrich (Carsten.Friedrich@gmail.com). All rights reserved
 #
 
-from Board import Board, NAUGHT, CROSS, WIN, LOSE, NEUTRAL
+from tic_tac_toe.Board import Board, NAUGHT, CROSS, WIN, LOSE, NEUTRAL
 
-from NeuralNetworkAgent3 import NNAgent
+from tic_tac_toe.NeuralNetworkAgent3 import NNAgent
 
-from RandomPlayer import RandomPlayer
+from tic_tac_toe.RandomPlayer import RandomPlayer
 
-from MinMaxAgent import MinMaxAgent
-from RndMinMaxAgent import RndMinMaxAgent
+from tic_tac_toe.MinMaxAgent import MinMaxAgent
+from tic_tac_toe.RndMinMaxAgent import RndMinMaxAgent
 
 DRAW = 0
 PLAYER1_WIN = 1

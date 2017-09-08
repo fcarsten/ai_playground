@@ -9,7 +9,7 @@ import numpy as np
 import tensorflow as tf
 import os.path
 
-from Board import Board, BOARD_SIZE, EMPTY, WIN, DRAW, LOSE
+from tic_tac_toe.Board import Board, BOARD_SIZE, EMPTY, WIN, DRAW, LOSE
 
 LEARNING_RATE = 0.001
 MODEL_NAME = 'tic-tac-toe-model-nna3'
@@ -24,7 +24,7 @@ TRAINING = True
 
 class NNAgent:
     game_counter = 0
-    random_move_prob = 0.1
+    random_move_prob = 0.5
 
     sess = tf.Session()
 
@@ -198,8 +198,8 @@ class NNAgent:
                 #     print 'losing move rewarded'
 
 
-                if self.game_counter % 1000 == 0:
-                    self.saver.save(self.sess, MODEL_PATH+MODEL_NAME)
+                # if self.game_counter % 1000 == 0:
+                #     self.saver.save(self.sess, MODEL_PATH+MODEL_NAME)
 
 
         # vars = tf.trainable_variables()

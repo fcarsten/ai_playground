@@ -11,7 +11,7 @@ import numpy as np
 import tensorflow as tf
 import os.path
 
-from Board import Board, BOARD_SIZE, EMPTY, WIN, DRAW, LOSE
+from tic_tac_toe.Board import Board, BOARD_SIZE, EMPTY, WIN, DRAW, LOSE
 
 LEARNING_RATE = 0.01
 MODEL_NAME = 'tic-tac-toe-model-nna'
