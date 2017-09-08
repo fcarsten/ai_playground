@@ -4,7 +4,7 @@
 
 from Board import Board, NAUGHT, CROSS, WIN, LOSE, NEUTRAL
 
-from NeuralNetworkAgent import NNAgent
+from NeuralNetworkAgent3 import NNAgent
 
 from RandomPlayer import RandomPlayer
 
@@ -64,7 +64,7 @@ def main():
     # player_mm = MinMaxAgent()
 
     player1 = NNAgent()
-    player2 = MinMaxAgent()
+    player2 = RndMinMaxAgent()
     game = 0
 
     while True:
