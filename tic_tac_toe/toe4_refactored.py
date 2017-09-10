@@ -4,7 +4,7 @@
 
 from tic_tac_toe.Board import Board, NAUGHT, CROSS, WIN, LOSE, NEUTRAL
 
-from tic_tac_toe.NeuralNetworkAgent3 import NNAgent
+from tic_tac_toe.NeuralNetworkAgent3BatchUpdate import NNAgent
 
 from tic_tac_toe.RandomPlayer import RandomPlayer
 
