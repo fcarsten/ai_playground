@@ -109,3 +109,5 @@ python_test.py
 *.meta
 tic_tac_toe/saved_models/checkpoint
 tic_tac_toe/saved_models/
+saved_models/checkpoint
+saved_models/
