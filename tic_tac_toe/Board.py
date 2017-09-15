@@ -56,6 +56,18 @@ class Board:
         else:
             self.state = s.copy()
 
+    def coord_to_pos(self, coord):
+        if coord is None:
+            return None
+
+        return coord[0]*3+coord[1]
+
+    def pos_to_coord(self, pos):
+        if pos is None:
+            return None
+
+        return (pos // 3, pos % 3)
+
     def reset(self):
         self.state.fill(EMPTY)
 
