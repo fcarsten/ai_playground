@@ -3,8 +3,9 @@ from PyQt5.QtWidgets import QApplication, QWidget, QLabel, QMessageBox
 from PyQt5.QtGui import QIcon, QPixmap
 import PyQt5.QtGui as QtGui
 from PyQt5.QtCore import Qt
-from tic_tac_toe.Board import Board, NAUGHT, CROSS, WIN
+from tic_tac_toe.Board import Board, NAUGHT, CROSS, WIN, LOSE, DRAW
 from tic_tac_toe.RndMinMaxAgent import RndMinMaxAgent
+from tic_tac_toe.NeuralNetworkAgent3BatchUpdate import NNAgent
 
 class TTTCanvas(QLabel):
     def __init__(self, parent):
@@ -58,7 +59,7 @@ class App(QWidget):
 
         self.board = Board()
 
-        self.agent = RndMinMaxAgent()
+        self.agent = NNAgent()
         self.agent.new_game(CROSS)
         self.initUI()
 
@@ -100,10 +101,12 @@ class App(QWidget):
                 self.update()
                 if finished:
                     if res == WIN:
+                        self.agent.final_result(LOSE)
                         mb = QMessageBox(QMessageBox.Information, "Game Over", "You Won!",
                                          QMessageBox.Ok, ex)
                         mb.exec_()
                     else:
+                        self.agent.final_result(DRAW)
                         mb = QMessageBox(QMessageBox.Information, "Game Over", "Draw!",
                                          QMessageBox.Ok, ex)
                         mb.exec_()
@@ -115,10 +118,12 @@ class App(QWidget):
 
                 if finished:
                     if res == WIN:
+                        self.agent.final_result(WIN)
                         mb = QMessageBox(QMessageBox.Information, "Game Over", "You Lose!",
                                          QMessageBox.Ok, ex)
                         mb.exec_()
                     else:
+                        self.agent.final_result(DRAW)
                         mb = QMessageBox(QMessageBox.Information, "Game Over", "Draw!",
                                          QMessageBox.Ok, ex)
                         mb.exec_()
