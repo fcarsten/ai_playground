@@ -15,7 +15,7 @@ import os.path
 from tic_tac_toe.Board import Board, BOARD_SIZE, EMPTY, WIN, DRAW, LOSE
 
 LEARNING_RATE = 0.001
-MODEL_NAME = 'tic-tac-toe-model-nna3-batch'
+MODEL_NAME = 'tic-tac-toe-model-nna4'
 MODEL_PATH = './saved_models/'
 
 WIN_REWARD = 10.0
@@ -102,6 +102,7 @@ class NNAgent:
 
         NNAgent.probabilities = tf.nn.softmax(logits, name='probabilities')
         NNAgent.loss_prob = tf.losses.mean_squared_error(predictions=logits, labels=target)
+
         # loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(labels=target, logits=logits))
 
         NNAgent.loss_penalty = tf.zeros_like(NNAgent.loss_prob)
@@ -110,6 +111,9 @@ class NNAgent:
             NNAgent.loss_penalty +=  0.0001 * tf.nn.l2_loss(weight)
 
         NNAgent.loss = tf.add(NNAgent.loss_prob, NNAgent.loss_penalty, 'total_loss')
+
+        NNAgent.loss_prob = tf.identity(NNAgent.loss_prob, 'loss_prob')
+        NNAgent.loss_penalty = tf.identity(NNAgent.loss_penalty, 'loss_penalty')
 
         update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
         with tf.control_dependencies(update_ops):
@@ -134,8 +138,10 @@ class NNAgent:
         NNAgent.train_step = graph.get_operation_by_name("train")
         NNAgent.is_training = graph.get_tensor_by_name("is_training:0")
 
-        losses = graph.get_collection('losses')
-        NNAgent.loss = losses[0]
+        NNAgent.loss = graph.get_tensor_by_name("total_loss:0")
+
+        NNAgent.loss_prob = graph.get_tensor_by_name("loss_prob:0")
+        NNAgent.loss_penalty = graph.get_tensor_by_name("loss_penalty:0")
 
     def board_state_to_nn_input(self, state):
         res = np.array([(state == self.side).astype(int),
