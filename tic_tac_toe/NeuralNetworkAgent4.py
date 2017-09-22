@@ -18,9 +18,9 @@ LEARNING_RATE = 0.001
 MODEL_NAME = 'tic-tac-toe-model-nna4'
 MODEL_PATH = './saved_models/'
 
-WIN_REWARD = 10.0
-DRAW_REWARD = 5.0
-LOSS_REWARD = 0.000001
+WIN_REWARD = 1.0
+DRAW_REWARD = 0.9
+LOSS_REWARD = 0.0
 
 TRAINING = True
 
@@ -108,7 +108,7 @@ class NNAgent:
         NNAgent.loss_penalty = tf.zeros_like(NNAgent.loss_prob)
 
         for weight in l2_vars:
-            NNAgent.loss_penalty +=  0.0001 * tf.nn.l2_loss(weight)
+            NNAgent.loss_penalty +=  0.000001 * tf.nn.l2_loss(weight)
 
         NNAgent.loss = tf.add(NNAgent.loss_prob, NNAgent.loss_penalty, 'total_loss')
 
@@ -170,23 +170,25 @@ class NNAgent:
         game_length = len(self.action_log)
         targets = []
 
-        r = self.reward
         for i in range(game_length - 1, -1, -1):
             target = np.copy(self.probs_log[i])
             current_action  = self.action_log[i]
             old_action_prob = target[current_action]
-            target_action_prob =  r + 0.99 * self.next_max_log[i]
-            # target_action_prob = 0.99 * self.next_max_log[i]
+
+            if i == game_length:
+                target_action_prob =  self.reward
+            else:
+                target_action_prob =  0.99 * self.next_max_log[i]
+
             target[current_action] = target_action_prob
 
-            st = sum(target)
-            target = [t *10.0 / st for t in target]
+            # st = sum(target)
+            # target = [t *10.0 / st for t in target]
             new_action_prob = target[current_action]
             # if self.reward > 0 and old_action_prob > new_action_prob + 1e-10:
             #     print 'winning move punished'
             # elif self.reward == LOSS_REWARD and old_action_prob + 1e-10 < new_action_prob :
             #     print 'losing move rewarded'
-            r /= 9.0
             targets.append(target)
 
         targets.reverse()
@@ -202,6 +204,10 @@ class NNAgent:
         nn_input = self.board_state_to_nn_input(board.state)
 
         probs = NNAgent.sess.run([self.probabilities], feed_dict={self.input_positions: [nn_input],NNAgent.is_training : False})[0][0]
+
+        if max(probs) > 1:
+            print("Wasn't expecting this!")
+
         self.probs_log.append(np.copy(probs))
 
         if len(self.action_log) > 0:
@@ -240,8 +246,11 @@ class NNAgent:
 
         if TRAINING:
             targets = self.calculate_targets()
+            targets.reverse()
+            oldq = [self.board_state_to_nn_input(i) for i in self.board_position_log]
+            oldq.reverse()
 
-            NNAgent.training_data[0].extend([self.board_state_to_nn_input(i) for i in self.board_position_log])
+            NNAgent.training_data[0].extend(oldq)
             NNAgent.training_data[1].extend(targets)
 
             # if(len(NNAgent.training_data[0])>100):
