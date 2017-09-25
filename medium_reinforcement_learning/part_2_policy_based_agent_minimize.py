@@ -53,16 +53,16 @@ class agent():
 
         self.loss = -tf.reduce_mean(tf.log(self.responsible_outputs) * self.reward_holder)
 
-        tvars = tf.trainable_variables()
-        self.gradient_holders = []
-        for idx, var in enumerate(tvars):
-            placeholder = tf.placeholder(tf.float32, name=str(idx) + '_holder')
-            self.gradient_holders.append(placeholder)
-
-        self.gradients = tf.gradients(self.loss, tvars)
+        # tvars = tf.trainable_variables()
+        # self.gradient_holders = []
+        # for idx, var in enumerate(tvars):
+        #     placeholder = tf.placeholder(tf.float32, name=str(idx) + '_holder')
+        #     self.gradient_holders.append(placeholder)
+        #
+        # self.gradients = tf.gradients(self.loss, tvars)
 
         optimizer = tf.train.AdamOptimizer(learning_rate=lr)
-        self.update_batch = optimizer.apply_gradients(zip(self.gradient_holders, tvars))
+        self.update_batch = optimizer.minimize(self.loss)
 
 
 # Training the Agent
@@ -109,15 +109,15 @@ with tf.Session() as sess:
                 ep_history[:, 2] = discount_rewards(ep_history[:, 2])
                 feed_dict = {myAgent.reward_holder: ep_history[:, 2],
                              myAgent.action_holder: ep_history[:, 1], myAgent.state_in: np.vstack(ep_history[:, 0])}
-                grads = sess.run(myAgent.gradients, feed_dict=feed_dict)
-                for idx, grad in enumerate(grads):
-                    gradBuffer[idx] += grad
-
-                if i % update_frequency == 0 and i != 0:
-                    feed_dict = dictionary = dict(zip(myAgent.gradient_holders, gradBuffer))
-                    _ = sess.run(myAgent.update_batch, feed_dict=feed_dict)
-                    for ix, grad in enumerate(gradBuffer):
-                        gradBuffer[ix] = grad * 0
+                _, inds, rps = sess.run([myAgent.update_batch, myAgent.indexes, myAgent.responsible_outputs], feed_dict=feed_dict)
+                # for idx, grad in enumerate(grads):
+                #     gradBuffer[idx] += grad
+                #
+                # if i % update_frequency == 0 and i != 0:
+                #     feed_dict = dictionary = dict(zip(myAgent.gradient_holders, gradBuffer))
+                #     _ = sess.run(myAgent.update_batch, feed_dict=feed_dict)
+                #     for ix, grad in enumerate(gradBuffer):
+                #         gradBuffer[ix] = grad * 0
 
                 total_reward.append(running_reward)
                 total_lenght.append(j)
