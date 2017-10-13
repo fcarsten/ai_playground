@@ -163,23 +163,23 @@ class NNAgent:
         self.output_values_log = []
         self.final_value = DRAW_VALUE
 
-    def calculate_targets(self):
-        game_length = len(self.action_log)
+    def calculate_targets(self, output_values_log, action_log, final_value):
+        game_length = len(action_log)
         targets = []
 
         for i in range(game_length - 1, -1, -1):
-            target = np.copy(self.output_values_log[i])
-            current_action  = self.action_log[i]
+            target = np.copy(output_values_log[i])
+            current_action  = action_log[i]
             old_action_value = target[current_action]
 
             if i == game_length-1:
-                target_action_value =  self.final_value
+                target_action_value =  final_value
             else:
-                target_action_value =  0.9 * max(new_action_value, self.next_max_log[i])
+                target_action_value =  0.9 * max(next_action_value, max(output_values_log[i+1]))
 
             target[current_action] = target_action_value
 
-            new_action_value = target[current_action]
+            next_action_value = target_action_value
 
             targets.append(target)
 
@@ -188,7 +188,8 @@ class NNAgent:
         return targets
 
     def get_probs(self, sess, input_pos, is_training):
-        probs, action_values = sess.run([NNAgent.probabilities, NNAgent.output_action_values], feed_dict={self.input_positions: [input_pos],NNAgent.is_training : is_training})
+        probs, action_values = sess.run([NNAgent.probabilities, NNAgent.output_action_values],
+                                        feed_dict={self.input_positions: [input_pos],NNAgent.is_training : is_training})
         return probs[0], action_values[0]
 
     def move(self, board):
@@ -217,6 +218,16 @@ class NNAgent:
 
         return res, finished
 
+    def reevaluate_prior_success(self):
+        random_success = random.choice(self.successes)
+        values = []
+        for state in random_success[0]:
+            _, value = self.get_probs(self.sess, state, False)
+            values.append(value);
+
+        targets = self.calculate_targets(values, random_success[1], random_success[2])
+        return random_success[0], targets
+
     def final_result(self, result):
         if result == WIN:
             self.final_value = WIN_VALUE
@@ -232,17 +243,18 @@ class NNAgent:
 
 
         if TRAINING:
-            target_values = self.calculate_targets()
+            target_values = self.calculate_targets(self.output_values_log, self.action_log, self.final_value)
             states = [self.board_state_to_nn_input(i) for i in self.board_position_log]
 
             if self.final_value > 0:
-                self.successes.append([states, target_values])
+                self.successes.append([states, self.action_log, self.final_value])
                 if len(self.successes) > MAX_SUCCESS_HISTORY_LENGTH:
                     self.successes.pop()
             elif len(self.successes)>0:
-                random_success = random.choice(self.successes)
-                NNAgent.training_data[0].extend(random_success[0])
-                NNAgent.training_data[1].extend(random_success[1])
+                s, t = self.reevaluate_prior_success();
+
+                NNAgent.training_data[0].extend(s)
+                NNAgent.training_data[1].extend(t)
 
             NNAgent.training_data[0].extend(states)
             NNAgent.training_data[1].extend(target_values)
