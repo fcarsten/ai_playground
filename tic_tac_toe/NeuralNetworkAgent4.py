@@ -15,13 +15,13 @@ import os.path
 
 from tic_tac_toe.Board import Board, BOARD_SIZE, EMPTY, WIN, DRAW, LOSE
 
-LEARNING_RATE = 0.01
+LEARNING_RATE = 0.001
 MODEL_NAME = 'tic-tac-toe-model-nna4'
 MODEL_PATH = './saved_models/'
 
 WIN_VALUE = 1.0
 DRAW_VALUE = 0.9
-LOSS_VALUE = 0.0
+LOSS_VALUE = 0
 
 TRAINING = True
 MAX_SUCCESS_HISTORY_LENGTH=100
@@ -105,8 +105,8 @@ class NNAgent:
         for weight in l2_vars:
             NNAgent.loss_penalty +=  0.000001 * tf.nn.l2_loss(weight)
 
-        NNAgent.loss = tf.add(NNAgent.loss_value, 0.0, 'total_loss')
-        # NNAgent.loss = tf.add(NNAgent.loss_prob, NNAgent.loss_penalty, 'total_loss')
+        NNAgent.loss = NNAgent.loss_value
+        # NNAgent.loss = tf.add(NNAgent.loss_value, NNAgent.loss_penalty, 'total_loss')
 
         NNAgent.loss_value = tf.identity(NNAgent.loss_value, 'loss_prob')
         NNAgent.loss_penalty = tf.identity(NNAgent.loss_penalty, 'loss_penalty')
@@ -114,7 +114,7 @@ class NNAgent:
         update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
         with tf.control_dependencies(update_ops):
             NNAgent.train_step = tf.train.GradientDescentOptimizer(learning_rate=LEARNING_RATE).minimize(NNAgent.loss, name='train')
-            # NNAgent.train_step = tf.train.(learning_rate=LEARNING_RATE).minimize(NNAgent.loss, name='train')
+            # NNAgent.train_step = tf.train.AdamOptimizer(learning_rate=LEARNING_RATE).minimize(NNAgent.loss, name='train')
 
         init = tf.global_variables_initializer()
         NNAgent.sess.run(init)
@@ -198,19 +198,23 @@ class NNAgent:
 
         probs, action_values = self.get_probs(NNAgent.sess, nn_input, False)
 
+        self.output_values_log.append(np.copy(action_values))
+
         for index, p in enumerate(probs):
             if not board.is_legal(index):
                 probs[index] = 0
                 action_values[index] = 0
 
-        self.output_values_log.append(np.copy(action_values))
 
         if len(self.action_log) > 0:
             self.next_max_log.append(np.max(action_values))
 
         probs = [p / sum(probs) for p in probs]
 
-        move = np.random.choice(BOARD_SIZE, p=probs)
+        if TRAINING is True and np.random.rand(1) < self.random_move_prob:
+            move = np.random.choice(BOARD_SIZE, p=probs)
+        else:
+            move = np.argmax(probs)
 
         _, res, finished = board.move(move, self.side)
 
@@ -246,15 +250,15 @@ class NNAgent:
             target_values = self.calculate_targets(self.output_values_log, self.action_log, self.final_value)
             states = [self.board_state_to_nn_input(i) for i in self.board_position_log]
 
-            if self.final_value > 0:
-                self.successes.append([states, self.action_log, self.final_value])
-                if len(self.successes) > MAX_SUCCESS_HISTORY_LENGTH:
-                    self.successes.pop()
-            elif len(self.successes)>0:
-                s, t = self.reevaluate_prior_success();
-
-                NNAgent.training_data[0].extend(s)
-                NNAgent.training_data[1].extend(t)
+            # if self.final_value > 0:
+            #     self.successes.append([states, self.action_log, self.final_value])
+            #     if len(self.successes) > MAX_SUCCESS_HISTORY_LENGTH:
+            #         self.successes.pop()
+            # elif len(self.successes)>0:
+            #     s, t = self.reevaluate_prior_success();
+            #
+            #     NNAgent.training_data[0].extend(s)
+            #     NNAgent.training_data[1].extend(t)
 
             NNAgent.training_data[0].extend(states)
             NNAgent.training_data[1].extend(target_values)
