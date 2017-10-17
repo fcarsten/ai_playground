@@ -19,7 +19,7 @@ LOSS_REWARD = 0.0
 TRAINING = True
 
 
-class NNAgent2:
+class NNAgent:
     game_counter = 0
     # side = None
     # board_position_log = []
@@ -45,12 +45,12 @@ class NNAgent2:
 
     @classmethod
     def build_graph(cls):
-        NNAgent2.input_positions = tf.placeholder(tf.float64, shape=(None, BOARD_SIZE * 3), name='inputs')
-        NNAgent2.target_input = tf.placeholder(tf.float64, shape=(None, BOARD_SIZE), name='train_inputs')
+        NNAgent.input_positions = tf.placeholder(tf.float64, shape=(None, BOARD_SIZE * 3), name='inputs')
+        NNAgent.target_input = tf.placeholder(tf.float64, shape=(None, BOARD_SIZE), name='train_inputs')
         # target = NNAgent2.target_input
-        target = tf.nn.softmax(NNAgent2.target_input)
+        target = tf.nn.softmax(NNAgent.target_input)
 
-        net = NNAgent2.input_positions
+        net = NNAgent.input_positions
         # net = add_layer(input_positions, BOARD_SIZE * 9, tf.tanh)
         net = cls.add_layer(net, BOARD_SIZE * 3, tf.nn.relu)
 
@@ -62,26 +62,26 @@ class NNAgent2:
 
         logits = cls.add_layer(net, BOARD_SIZE)
 
-        NNAgent2.probabilities = tf.nn.softmax(logits, name='probabilities')
-        mse = tf.nn.softmax_cross_entropy_with_logits(logits=NNAgent2.probabilities, labels=target, name='xentropy')
-        NNAgent2.train_step = tf.train.GradientDescentOptimizer(learning_rate=LEARNING_RATE).minimize(mse, name='train')
+        NNAgent.probabilities = tf.nn.softmax(logits, name='probabilities')
+        mse = tf.nn.softmax_cross_entropy_with_logits(logits=NNAgent.probabilities, labels=target, name='xentropy')
+        NNAgent.train_step = tf.train.GradientDescentOptimizer(learning_rate=LEARNING_RATE).minimize(mse, name='train')
 
         init = tf.global_variables_initializer()
-        NNAgent2.sess.run(init)
-        NNAgent2.saver = tf.train.Saver()
+        NNAgent.sess.run(init)
+        NNAgent.saver = tf.train.Saver()
 
     @classmethod
     def load_graph(cls):
-        NNAgent2.saver = tf.train.import_meta_graph(MODEL_PATH+MODEL_NAME + '.meta')
-        NNAgent2.saver.restore(NNAgent2.sess, tf.train.latest_checkpoint(MODEL_PATH))
+        NNAgent.saver = tf.train.import_meta_graph(MODEL_PATH + MODEL_NAME + '.meta')
+        NNAgent.saver.restore(NNAgent.sess, tf.train.latest_checkpoint(MODEL_PATH))
 
         # all_vars = tf.get_collection('vars')
 
         graph = tf.get_default_graph()
-        NNAgent2.input_positions = graph.get_tensor_by_name("inputs:0")
-        NNAgent2.probabilities = graph.get_tensor_by_name("probabilities:0")
-        NNAgent2.target_input = graph.get_tensor_by_name("train_inputs:0")
-        NNAgent2.train_step = graph.get_operation_by_name("train")
+        NNAgent.input_positions = graph.get_tensor_by_name("inputs:0")
+        NNAgent.probabilities = graph.get_tensor_by_name("probabilities:0")
+        NNAgent.target_input = graph.get_tensor_by_name("train_inputs:0")
+        NNAgent.train_step = graph.get_operation_by_name("train")
 
     def board_state_to_nn_input(self, state):
         res = np.array([(state == self.side).astype(int),
@@ -98,7 +98,7 @@ class NNAgent2:
         self.reward = DRAW_REWARD
 
     def new_game(self, side):
-        NNAgent2.game_counter += 1
+        NNAgent.game_counter += 1
         self.side = side
         self.board_position_log = []
         self.action_log = []
@@ -140,7 +140,7 @@ class NNAgent2:
         self.board_position_log.append(board.state.copy())
         nn_input = self.board_state_to_nn_input(board.state)
 
-        probs = NNAgent2.sess.run([self.probabilities], feed_dict={self.input_positions: [nn_input]})[0][0]
+        probs = NNAgent.sess.run([self.probabilities], feed_dict={self.input_positions: [nn_input]})[0][0]
         self.probs_log.append(np.copy(probs))
 
         if len(self.action_log) > 0:
@@ -188,7 +188,7 @@ class NNAgent2:
                 self.sess.run([self.train_step],
                               feed_dict={self.input_positions: [nn_input], self.target_input: [target]})
 
-                new_probs = NNAgent2.sess.run([self.probabilities], feed_dict={self.input_positions: [nn_input]})[0][0]
+                new_probs = NNAgent.sess.run([self.probabilities], feed_dict={self.input_positions: [nn_input]})[0][0]
 
                 # old_action_prob = old_probs[old_action]
                 # new_action_prob = new_probs[old_action]
@@ -202,7 +202,7 @@ class NNAgent2:
             #     self.saver.save(self.sess, MODEL_PATH+MODEL_NAME)
 
 if os.path.exists(MODEL_PATH+MODEL_NAME + '.meta'):
-    NNAgent2.load_graph()
+    NNAgent.load_graph()
 else:
-    NNAgent2.build_graph()
+    NNAgent.build_graph()
 
