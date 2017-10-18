@@ -87,6 +87,10 @@ class NNAgent:
         l2_vars.append(w)
         net, w = cls.add_layer(net, BOARD_SIZE * 3*128, tf.nn.relu, NNAgent.is_training)
         l2_vars.append(w)
+        net, w = cls.add_layer(net, BOARD_SIZE * 3*128, tf.nn.relu, NNAgent.is_training)
+        l2_vars.append(w)
+        net, w = cls.add_layer(net, BOARD_SIZE * 3*128, tf.nn.relu, NNAgent.is_training)
+        l2_vars.append(w)
         # net, w = cls.add_layer(net, BOARD_SIZE * 3*18, tf.nn.relu, NNAgent.is_training)
         # l2_vars.append(w)
         # net, w = cls.add_layer(net, BOARD_SIZE * 3*6, tf.nn.relu, NNAgent.is_training)
@@ -198,13 +202,13 @@ class NNAgent:
 
         probs, action_values = self.get_probs(NNAgent.sess, nn_input, False)
 
-        self.output_values_log.append(np.copy(action_values))
 
         for index, p in enumerate(probs):
             if not board.is_legal(index):
                 probs[index] = 0
                 action_values[index] = 0
 
+        self.output_values_log.append(np.copy(action_values))
 
         if len(self.action_log) > 0:
             self.next_max_log.append(np.max(action_values))
@@ -222,15 +226,16 @@ class NNAgent:
 
         return res, finished
 
-    def reevaluate_prior_success(self):
-        random_success = random.choice(self.successes)
+    def reevaluate_prior_success(self, old_game = None ):
+        if old_game is None:
+            old_game = random.choice(self.successes)
         values = []
-        for state in random_success[0]:
+        for state in old_game[0]:
             _, value = self.get_probs(self.sess, state, False)
             values.append(value);
 
-        targets = self.calculate_targets(values, random_success[1], random_success[2])
-        return random_success[0], targets
+        targets = self.calculate_targets(values, old_game[1], old_game[2])
+        return old_game[0], targets
 
     def final_result(self, result):
         if result == WIN:
@@ -256,6 +261,8 @@ class NNAgent:
                     self.successes.pop()
             elif len(self.successes)>0:
                 s, t = self.reevaluate_prior_success();
+            # for old_game in self.successes:
+            #     s, t = self.reevaluate_prior_success(old_game);
 
                 NNAgent.training_data[0].extend(s)
                 NNAgent.training_data[1].extend(t)

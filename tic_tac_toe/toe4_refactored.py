@@ -63,8 +63,8 @@ def main():
     # player_rnd = RandomPlayer()
     # player_mm = MinMaxAgent()
 
-    player1 = NNAgent()
-    player2 = RndMinMaxAgent()
+    player2 = NNAgent()
+    player1 = RndMinMaxAgent()
     # player1 = RandomPlayer()
     # player2 = RandomPlayer()
 
