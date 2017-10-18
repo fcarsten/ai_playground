@@ -87,10 +87,10 @@ class NNAgent:
         l2_vars.append(w)
         net, w = cls.add_layer(net, BOARD_SIZE * 3*128, tf.nn.relu, NNAgent.is_training)
         l2_vars.append(w)
-        net, w = cls.add_layer(net, BOARD_SIZE * 3*18, tf.nn.relu, NNAgent.is_training)
-        l2_vars.append(w)
-        net, w = cls.add_layer(net, BOARD_SIZE * 3*6, tf.nn.relu, NNAgent.is_training)
-        l2_vars.append(w)
+        # net, w = cls.add_layer(net, BOARD_SIZE * 3*18, tf.nn.relu, NNAgent.is_training)
+        # l2_vars.append(w)
+        # net, w = cls.add_layer(net, BOARD_SIZE * 3*6, tf.nn.relu, NNAgent.is_training)
+        # l2_vars.append(w)
         net, w = cls.add_layer(net, BOARD_SIZE * 3, tf.nn.relu, NNAgent.is_training)
         l2_vars.append(w)
 
@@ -250,15 +250,15 @@ class NNAgent:
             target_values = self.calculate_targets(self.output_values_log, self.action_log, self.final_value)
             states = [self.board_state_to_nn_input(i) for i in self.board_position_log]
 
-            # if self.final_value > 0:
-            #     self.successes.append([states, self.action_log, self.final_value])
-            #     if len(self.successes) > MAX_SUCCESS_HISTORY_LENGTH:
-            #         self.successes.pop()
-            # elif len(self.successes)>0:
-            #     s, t = self.reevaluate_prior_success();
-            #
-            #     NNAgent.training_data[0].extend(s)
-            #     NNAgent.training_data[1].extend(t)
+            if self.final_value > 0:
+                self.successes.append([states, self.action_log, self.final_value])
+                if len(self.successes) > MAX_SUCCESS_HISTORY_LENGTH:
+                    self.successes.pop()
+            elif len(self.successes)>0:
+                s, t = self.reevaluate_prior_success();
+
+                NNAgent.training_data[0].extend(s)
+                NNAgent.training_data[1].extend(t)
 
             NNAgent.training_data[0].extend(states)
             NNAgent.training_data[1].extend(target_values)
