@@ -193,15 +193,16 @@ class NNAgent:
 
     def get_probs(self, sess, input_pos, is_training):
         probs, action_values = sess.run([NNAgent.probabilities, NNAgent.output_action_values],
-                                        feed_dict={self.input_positions: [input_pos],NNAgent.is_training : is_training})
-        return probs[0], action_values[0]
+                                        feed_dict={self.input_positions: input_pos,NNAgent.is_training : is_training})
+        return probs, action_values
 
     def move(self, board):
         self.board_position_log.append(board.state.copy())
         nn_input = self.board_state_to_nn_input(board.state)
 
-        probs, action_values = self.get_probs(NNAgent.sess, nn_input, False)
-
+        probs_array, action_values_array = self.get_probs(NNAgent.sess, [nn_input], False)
+        probs = probs_array[0]
+        action_values = action_values_array[0]
 
         for index, p in enumerate(probs):
             if not board.is_legal(index):
@@ -229,10 +230,10 @@ class NNAgent:
     def reevaluate_prior_success(self, old_game = None ):
         if old_game is None:
             old_game = random.choice(self.successes)
-        values = []
-        for state in old_game[0]:
-            _, value = self.get_probs(self.sess, state, False)
-            values.append(value);
+
+
+        old_states = np.asarray(old_game[0])
+        _, values = self.get_probs(self.sess, old_states, False)
 
         targets = self.calculate_targets(values, old_game[1], old_game[2])
         return old_game[0], targets
