@@ -12,18 +12,13 @@ from tic_tac_toe.Board import Board, BOARD_SIZE, EMPTY, WIN, DRAW, LOSE
 #
 # Source: https://github.com/awjuliani/DeepRL-Agents/blob/master/Vanilla-Policy.ipynb
 
-try:
-    xrange = xrange
-except:
-    xrange = range
-
 gamma = 0.1
-LEARNING_RATE = 0.0001
+LEARNING_RATE = 0.001
 MODEL_NAME = 'tic-tac-toe-model-nna4'
 MODEL_PATH = './saved_models/'
 
-WIN_VALUE = 10.0
-DRAW_VALUE = 5.0
+WIN_VALUE = 2.0
+DRAW_VALUE = 2.0
 LOSS_VALUE = -1.0
 
 TRAINING = True
@@ -46,12 +41,12 @@ class NNAgent:
     sess = tf.Session()
 
     @classmethod
-    def build_graph(cls, lr=LEARNING_RATE, s_size=BOARD_SIZE * 3, a_size=BOARD_SIZE, h_size=BOARD_SIZE * 3 * 100):
+    def build_graph(cls, lr=LEARNING_RATE, s_size=BOARD_SIZE * 3, a_size=BOARD_SIZE, h_size=BOARD_SIZE * 3 * 20):
         # tf.reset_default_graph()  # Clear the Tensorflow graph.
         # These lines established the feed-forward part of the network. The agent takes a state and produces an action.
         NNAgent.state_in = tf.placeholder(shape=[None, s_size], dtype=tf.float32)
-        hidden = slim.fully_connected(NNAgent.state_in, h_size, activation_fn=tf.nn.relu6)
-        hidden = slim.fully_connected(hidden, h_size, activation_fn=tf.nn.relu6)
+        hidden = slim.fully_connected(NNAgent.state_in, h_size, activation_fn=tf.nn.relu)
+        hidden = slim.fully_connected(hidden, h_size, activation_fn=tf.nn.relu)
         NNAgent.logits = slim.fully_connected(hidden, a_size, activation_fn=None)
         NNAgent.output = tf.nn.softmax(NNAgent.logits)
         NNAgent.chosen_action = tf.argmax(NNAgent.output, 1)
@@ -114,10 +109,10 @@ class NNAgent:
 
 
         pref_move = np.argmax(probs)
-        # if not board.is_legal(pref_move):
-        #     self.fail_history[0].append(nn_input.copy())
-        #     self.fail_history[1].append(pref_move)
-        #     self.fail_history[2].append(LOSS_VALUE)
+        if not board.is_legal(pref_move):
+            self.fail_history[0].append(nn_input.copy())
+            self.fail_history[1].append(pref_move)
+            self.fail_history[2].append(LOSS_VALUE)
 
         # if self.game_counter % 1000 == 0:
         #     print("Logits sum: %.9f" % np.sum(logits_array))
@@ -146,25 +141,25 @@ class NNAgent:
         discounted_r = np.zeros(length)
 
         running_add = r
-        for t in reversed(xrange(0, length)):
+        for t in reversed(range(0, length)):
             discounted_r[t] = running_add
             running_add = running_add * gamma
         return discounted_r.tolist()
 
     def final_result(self, result):
         if result == WIN:
-            self.final_value = WIN_VALUE
+            final_value = WIN_VALUE
         elif result == LOSE:
-            self.final_value = LOSS_VALUE
+            final_value = LOSS_VALUE
         elif result == DRAW:
-            self.final_value = DRAW_VALUE
+            final_value = DRAW_VALUE
         else:
             raise ValueError("Unexpected game result {}".format(result))
 
-        rewards = self.calculate_rewards(self.final_value, len(self.action_log))
+        rewards = self.calculate_rewards(final_value, len(self.action_log))
         states = [self.board_state_to_nn_input(i) for i in self.board_position_log]
 
-        if self.final_value > LOSS_VALUE:
+        if final_value > LOSS_VALUE:
             if len(self.success_history[0]) < MAX_HISTORY_LENGTH:
                 self.success_history[0].extend(states)
                 self.success_history[1].extend(self.action_log)
@@ -176,13 +171,15 @@ class NNAgent:
                 self.fail_history[2].extend(rewards)
 
         if (len(self.success_history[0]) >= MAX_HISTORY_LENGTH) or (len(self.fail_history[0]) >= MAX_HISTORY_LENGTH):
-            input_vals = self.success_history
-            input_vals[0].extend(self.fail_history[0])
-            input_vals[1].extend(self.fail_history[1])
-            input_vals[2].extend(self.fail_history[2])
+            input_states = self.success_history[0].copy()
+            input_actions = self.success_history[1].copy()
+            input_rewards = self.success_history[2].copy()
+            input_states.extend(self.fail_history[0])
+            input_actions.extend(self.fail_history[1])
+            input_rewards.extend(self.fail_history[2])
 
-            feed_dict = {NNAgent.reward_holder: input_vals[2],
-                         NNAgent.action_holder: input_vals[1], NNAgent.state_in: input_vals[0]}
+            feed_dict = {NNAgent.reward_holder: input_rewards,
+                         NNAgent.action_holder: input_actions, NNAgent.state_in: input_states}
             _, inds, rps, loss = self.sess.run([NNAgent.update_batch, NNAgent.indexes, NNAgent.responsible_outputs, NNAgent.loss], feed_dict=feed_dict)
 
             if self.game_counter % 1000 == 0:
