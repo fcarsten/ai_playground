@@ -24,26 +24,24 @@ LOSS_VALUE = 0.0
 TRAINING = True
 
 
-class NNAgent:
-    game_counter = 0
-    # side = None
-    # board_position_log = []
-    # action_log = []
-    # next_max_log = []
-    # probs_log = []
-    # reward = DRAW_REWARD
-    random_move_prob = 0.1
-    #
-    # sess = tf.Session()
+class QNetwork:
 
-    @staticmethod
-    def add_layer(input_tensor, output_size, regulize=None, name=None):
+    def __init__(self, name):
+        self.name = name
+        self.input_positions = None
+        self.target_input = None
+        self.logits = None
+        self.probabilities = None
+        self.train_step = None
+        self.build_graph(name)
+
+    def add_layer(self, input_tensor, output_size, regulize=None, name=None):
         input_tensor_size = input_tensor.shape[1].value
         w1 = tf.Variable(tf.truncated_normal([input_tensor_size, output_size],
                                              stddev=0.1 / np.sqrt(float(input_tensor_size * output_size))))
         b1 = tf.Variable(tf.zeros([1, output_size], tf.float32))
 
-        res= tf.matmul(input_tensor, w1) + b1
+        res = tf.matmul(input_tensor, w1) + b1
 
         if regulize is not None:
             res = regulize(res)
@@ -53,46 +51,49 @@ class NNAgent:
 
         return res
 
-    @classmethod
-    def build_graph(cls):
-        NNAgent.input_positions = tf.placeholder(tf.float32, shape=(None, BOARD_SIZE * 3), name='inputs')
-        NNAgent.target_input = tf.placeholder(tf.float32, shape=(None, BOARD_SIZE), name='train_inputs')
-        target = NNAgent.target_input
+    def build_graph(self, name):
+        with tf.variable_scope(name):
+            self.input_positions = tf.placeholder(tf.float32, shape=(None, BOARD_SIZE * 3), name='inputs')
+            self.target_input = tf.placeholder(tf.float32, shape=(None, BOARD_SIZE), name='train_inputs')
+            target = self.target_input
 
-        net = NNAgent.input_positions
-        # net = add_layer(input_positions, BOARD_SIZE * 9, tf.tanh)
-        net = cls.add_layer(net, BOARD_SIZE * 3, tf.nn.relu)
+            net = self.input_positions
+            # net = add_layer(input_positions, BOARD_SIZE * 9, tf.tanh)
+            net = self.add_layer(net, BOARD_SIZE * 3, tf.nn.relu)
 
-        # net = add_layer(net, BOARD_SIZE*BOARD_SIZE*BOARD_SIZE, tf.tanh)
+            # net = add_layer(net, BOARD_SIZE*BOARD_SIZE*BOARD_SIZE, tf.tanh)
 
-        # net = add_layer(net, BOARD_SIZE*BOARD_SIZE*BOARD_SIZE * 9, tf.tanh)
+            # net = add_layer(net, BOARD_SIZE*BOARD_SIZE*BOARD_SIZE * 9, tf.tanh)
 
-        #    net = add_layer(net, BOARD_SIZE*BOARD_SIZE, tf.tanh)
+            #    net = add_layer(net, BOARD_SIZE*BOARD_SIZE, tf.tanh)
 
-        NNAgent.logits = cls.add_layer(net, BOARD_SIZE, name='logits')
+            self.logits = self.add_layer(net, BOARD_SIZE, name='logits')
 
-        NNAgent.probabilities = tf.nn.softmax(NNAgent.logits, name='probabilities')
-        mse = tf.losses.mean_squared_error(predictions=NNAgent.logits, labels=target)
-        NNAgent.train_step = tf.train.GradientDescentOptimizer(learning_rate=LEARNING_RATE).minimize(mse, name='train')
-        #
-        # init = tf.global_variables_initializer()
-        # NNAgent.sess.run(init)
-        NNAgent.saver = tf.train.Saver()
+            self.probabilities = tf.nn.softmax(self.logits, name='probabilities')
+            mse = tf.losses.mean_squared_error(predictions=self.logits, labels=target)
+            self.train_step = tf.train.GradientDescentOptimizer(learning_rate=LEARNING_RATE).minimize(mse, name='train')
+            #
+            # init = tf.global_variables_initializer()
+            # NNAgent.sess.run(init)
+            # self.saver = tf.train.Saver()
 
-    @classmethod
-    def load_graph(cls, sess):
-        NNAgent.saver = tf.train.import_meta_graph(MODEL_PATH+MODEL_NAME + '.meta')
-        NNAgent.saver.restore(sess, tf.train.latest_checkpoint(MODEL_PATH))
+    # @classmethod
+    # def load_graph(cls, sess):
+    #     NNAgent.saver = tf.train.import_meta_graph(MODEL_PATH+MODEL_NAME + '.meta')
+    #     NNAgent.saver.restore(sess, tf.train.latest_checkpoint(MODEL_PATH))
+    #
+    #     # all_vars = tf.get_collection('vars')
+    #
+    #     graph = tf.get_default_graph()
+    #     NNAgent.input_positions = graph.get_tensor_by_name("inputs:0")
+    #     NNAgent.logits = graph.get_tensor_by_name("probabilities:0")
+    #     NNAgent.target_input = graph.get_tensor_by_name('logits:0')
+    #     NNAgent.probabilities = graph.get_tensor_by_name("probabilities:0")
+    #     NNAgent.target_input = graph.get_tensor_by_name("train_inputs:0")
+    #     NNAgent.train_step = graph.get_operation_by_name("train")
 
-        # all_vars = tf.get_collection('vars')
 
-        graph = tf.get_default_graph()
-        NNAgent.input_positions = graph.get_tensor_by_name("inputs:0")
-        NNAgent.logits = graph.get_tensor_by_name("probabilities:0")
-        NNAgent.target_input = graph.get_tensor_by_name('logits:0')
-        NNAgent.probabilities = graph.get_tensor_by_name("probabilities:0")
-        NNAgent.target_input = graph.get_tensor_by_name("train_inputs:0")
-        NNAgent.train_step = graph.get_operation_by_name("train")
+class NNAgent:
 
     def board_state_to_nn_input(self, state):
         res = np.array([(state == self.side).astype(int),
@@ -100,22 +101,22 @@ class NNAgent:
                         (state == EMPTY).astype(int)])
         return res.reshape(-1)
 
-    def __init__(self):
+    def __init__(self, name):
         self.side = None
         self.board_position_log = []
         self.action_log = []
         self.next_max_log = []
         self.values_log = []
-        self.reward = DRAW_VALUE
+        self.name = name
+        self.random_move_prob = 0.1
+        self.nn = QNetwork(name)
 
     def new_game(self, side):
-        NNAgent.game_counter += 1
         self.side = side
         self.board_position_log = []
         self.action_log = []
         self.next_max_log = []
         self.values_log = []
-        self.reward = DRAW_VALUE
 
     def calculate_targets(self):
         game_length = len(self.action_log)
@@ -126,14 +127,7 @@ class NNAgent:
 
             old_action_prob = target[self.action_log[i]]
 
-            target[self.action_log[i]] = self.reward + 0.99 * self.next_max_log[i]
-            # target = [t / sum(target) for t in target]
-            # new_action_prob = target[self.action_log[i]]
-            # if reward == WIN_REWARD and old_action_prob > new_action_prob:
-            #     print 'winning move punished'
-            # elif reward == LOSS_REWARD and old_action_prob < new_action_prob:
-            #     print 'losing move punished'
-            #        reward /= 9.0
+            target[self.action_log[i]] = 0.99 * self.next_max_log[i]
             targets.append(target)
 
         targets.reverse()
@@ -141,14 +135,16 @@ class NNAgent:
         return targets
 
     def get_probs(self, sess, input_pos):
-        probs, logits = sess.run([NNAgent.probabilities, NNAgent.logits], feed_dict={NNAgent.input_positions: [input_pos]})
+        probs, logits = sess.run([self.nn.probabilities, self.nn.logits],
+                                 feed_dict={self.nn.input_positions: [input_pos]})
         return probs[0], logits[0]
 
     def move(self, sess, board):
         self.board_position_log.append(board.state.copy())
         nn_input = self.board_state_to_nn_input(board.state)
 
-        probs, logits =  self.get_probs(sess, nn_input) #    NNAgent.sess.run([self.probabilities], feed_dict={self.input_positions: [nn_input]})[0][0]
+        probs, logits = self.get_probs(sess,
+                                       nn_input)  # NNAgent.sess.run([self.probabilities], feed_dict={self.input_positions: [nn_input]})[0][0]
 
         logits = np.copy(logits)
 
@@ -168,8 +164,7 @@ class NNAgent:
             move = np.random.choice(BOARD_SIZE, p=probs)
         else:
             move = np.argmax(probs)
-        # update board, logs
-        #        hit_log.append(1 * (bomb_index in ship_positions))
+
         _, res, finished = board.move(move, self.side)
 
         self.action_log.append(move)
@@ -178,15 +173,15 @@ class NNAgent:
 
     def final_result(self, sess, result):
         if result == WIN:
-            self.reward = WIN_VALUE
+            reward = WIN_VALUE
         elif result == LOSE:
-            self.reward = LOSS_VALUE
+            reward = LOSS_VALUE
         elif result == DRAW:
-            self.reward = DRAW_VALUE
+            reward = DRAW_VALUE
         else:
             raise ValueError("Unexpected game result {}".format(result))
 
-        self.next_max_log.append(self.reward)
+        self.next_max_log.append(reward)
         self.random_move_prob = 0.95 * self.random_move_prob
 
         if TRAINING:
@@ -197,14 +192,14 @@ class NNAgent:
                                                                     self.values_log, self.action_log):
                 nn_input = self.board_state_to_nn_input(current_board)
 
-                sess.run([NNAgent.train_step],
-                              feed_dict={NNAgent.input_positions: [nn_input], NNAgent.target_input: [target]})
+                sess.run([self.nn.train_step],
+                         feed_dict={self.nn.input_positions: [nn_input], self.nn.target_input: [target]})
 
-            if self.game_counter % 1000 == 0:
-                self.saver.save(sess, MODEL_PATH+MODEL_NAME)
+            # if self.game_counter % 1000 == 0:
+            #     self.saver.save(sess, MODEL_PATH + MODEL_NAME)
 
-if os.path.exists(MODEL_PATH+MODEL_NAME + '.meta'):
-    NNAgent.load_graph()
-else:
-    NNAgent.build_graph()
-
+#
+# if os.path.exists(MODEL_PATH + MODEL_NAME + '.meta'):
+#     NNAgent.load_graph()
+# else:
+#     NNAgent.build_graph()

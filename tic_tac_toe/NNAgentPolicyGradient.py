@@ -191,11 +191,7 @@ class NNAgent:
                 print("Loss Value: %.9f" % loss)
             if len(self.success_history[0]) >= MAX_HISTORY_LENGTH:
                 self.success_history = ([], [], [])
-                # self.success_history = (self.success_history[0][MAX_HISTORY_LENGTH//2:],
-                #                         self.success_history[1][MAX_HISTORY_LENGTH//2:],
-                #                         self.success_history[2][MAX_HISTORY_LENGTH//2:])
+
             if len(self.fail_history[0]) >= MAX_HISTORY_LENGTH:
                 self.fail_history = ([], [], [])
-                # self.fail_history = (self.fail_history[0][MAX_HISTORY_LENGTH//2:],
-                #                         self.fail_history[1][MAX_HISTORY_LENGTH//2:],
-                #                         self.fail_history[2][MAX_HISTORY_LENGTH//2:])
+

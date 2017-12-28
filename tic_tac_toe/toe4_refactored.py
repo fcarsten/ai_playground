@@ -6,7 +6,8 @@ import tensorflow as tf
 
 from tic_tac_toe.Board import Board, NAUGHT, CROSS, WIN, LOSE, NEUTRAL
 
-from tic_tac_toe.NNAgentPolicyGradient import NNAgent
+from tic_tac_toe.NNAgentPolicyGradient import NNAgent as NNAgentPG
+from tic_tac_toe.NeuralNetworkAgent import NNAgent as NNAgentQ1
 
 from tic_tac_toe.RandomPlayer import RandomPlayer
 
@@ -65,8 +66,9 @@ def main():
     # player_rnd = RandomPlayer()
     # player_mm = MinMaxAgent()
 
-    players2 = [NNAgent("p1")]
-    players1 = [RndMinMaxAgent(), RandomPlayer()]
+    players2 = [NNAgentPG("p1")]
+    players1 = [NNAgentQ1("p2")]
+    # players1 = [RndMinMaxAgent(), RandomPlayer()]
     # player1 = RandomPlayer()
     # player2 = RandomPlayer()
 
