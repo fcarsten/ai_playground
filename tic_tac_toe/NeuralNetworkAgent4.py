@@ -31,8 +31,8 @@ class NNAgent:
     random_move_prob = 0.9
     training_data = ([],[])
     is_training = False
-
-    sess = tf.Session()
+    #
+    # sess = tf.Session()
 
     @staticmethod
     def add_layer(input_tensor, output_size, activation_fn=None, training_flag=False, dropout_rate=0.0):
@@ -120,12 +120,12 @@ class NNAgent:
             NNAgent.train_step = tf.train.GradientDescentOptimizer(learning_rate=LEARNING_RATE).minimize(NNAgent.loss, name='train')
             # NNAgent.train_step = tf.train.AdamOptimizer(learning_rate=LEARNING_RATE).minimize(NNAgent.loss, name='train')
 
-        init = tf.global_variables_initializer()
-        NNAgent.sess.run(init)
+        # init = tf.global_variables_initializer()
+        # NNAgent.sess.run(init)
         NNAgent.saver = tf.train.Saver()
 
     @classmethod
-    def load_graph(cls):
+    def load_graph(cls, sess):
         NNAgent.saver = tf.train.import_meta_graph(MODEL_PATH+MODEL_NAME + '.meta')
         NNAgent.saver.restore(NNAgent.sess, tf.train.latest_checkpoint(MODEL_PATH))
 
@@ -196,11 +196,11 @@ class NNAgent:
                                         feed_dict={self.input_positions: input_pos,NNAgent.is_training : is_training})
         return probs, action_values
 
-    def move(self, board):
+    def move(self, sess, board):
         self.board_position_log.append(board.state.copy())
         nn_input = self.board_state_to_nn_input(board.state)
 
-        probs_array, action_values_array = self.get_probs(NNAgent.sess, [nn_input], False)
+        probs_array, action_values_array = self.get_probs(sess, [nn_input], False)
         probs = probs_array[0]
         action_values = action_values_array[0]
 
@@ -227,18 +227,18 @@ class NNAgent:
 
         return res, finished
 
-    def reevaluate_prior_success(self, old_game = None ):
+    def reevaluate_prior_success(self, sess, old_game = None ):
         if old_game is None:
             old_game = random.choice(self.successes)
 
 
         old_states = np.asarray(old_game[0])
-        _, values = self.get_probs(self.sess, old_states, False)
+        _, values = self.get_probs(sess, old_states, False)
 
         targets = self.calculate_targets(values, old_game[1], old_game[2])
         return old_game[0], targets
 
-    def final_result(self, result):
+    def final_result(self, sess, result):
         if result == WIN:
             self.final_value = WIN_VALUE
         elif result == LOSE:
@@ -261,7 +261,7 @@ class NNAgent:
                 if len(self.successes) > MAX_SUCCESS_HISTORY_LENGTH:
                     self.successes.pop()
             elif len(self.successes)>0:
-                s, t = self.reevaluate_prior_success();
+                s, t = self.reevaluate_prior_success(sess);
             # for old_game in self.successes:
             #     s, t = self.reevaluate_prior_success(old_game);
 
@@ -273,7 +273,7 @@ class NNAgent:
 
             if(True):
 
-                _, l, lq, lpen = self.sess.run([self.train_step, NNAgent.loss, NNAgent.loss_value, NNAgent.loss_penalty],
+                _, l, lq, lpen = sess.run([self.train_step, NNAgent.loss, NNAgent.loss_value, NNAgent.loss_penalty],
                              feed_dict={self.input_positions: NNAgent.training_data[0],
                                         self.target_input: NNAgent.training_data[1],
                                         NNAgent.is_training: True})
@@ -284,7 +284,7 @@ class NNAgent:
                     print("Loss Q Value: %.9f" % lq)
                     print("Loss Penalty: %.9f" % lpen)
                     print("Loss Total: %.9f" % l)
-                    self.saver.save(self.sess, MODEL_PATH+MODEL_NAME)
+                    self.saver.save(sess, MODEL_PATH+MODEL_NAME)
 
 NNAgent.build_graph()
 # if os.path.exists(MODEL_PATH+MODEL_NAME + '.meta'):

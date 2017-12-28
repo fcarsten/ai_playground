@@ -33,8 +33,8 @@ class NNAgent:
     # probs_log = []
     # reward = DRAW_REWARD
     random_move_prob = 0.1
-
-    sess = tf.Session()
+    #
+    # sess = tf.Session()
 
     @staticmethod
     def add_layer(input_tensor, output_size, regulize=None, name=None):
@@ -74,15 +74,15 @@ class NNAgent:
         NNAgent.probabilities = tf.nn.softmax(NNAgent.logits, name='probabilities')
         mse = tf.losses.mean_squared_error(predictions=NNAgent.logits, labels=target)
         NNAgent.train_step = tf.train.GradientDescentOptimizer(learning_rate=LEARNING_RATE).minimize(mse, name='train')
-
-        init = tf.global_variables_initializer()
-        NNAgent.sess.run(init)
+        #
+        # init = tf.global_variables_initializer()
+        # NNAgent.sess.run(init)
         NNAgent.saver = tf.train.Saver()
 
     @classmethod
-    def load_graph(cls):
+    def load_graph(cls, sess):
         NNAgent.saver = tf.train.import_meta_graph(MODEL_PATH+MODEL_NAME + '.meta')
-        NNAgent.saver.restore(NNAgent.sess, tf.train.latest_checkpoint(MODEL_PATH))
+        NNAgent.saver.restore(sess, tf.train.latest_checkpoint(MODEL_PATH))
 
         # all_vars = tf.get_collection('vars')
 
@@ -144,11 +144,11 @@ class NNAgent:
         probs, logits = sess.run([NNAgent.probabilities, NNAgent.logits], feed_dict={NNAgent.input_positions: [input_pos]})
         return probs[0], logits[0]
 
-    def move(self, board):
+    def move(self, sess, board):
         self.board_position_log.append(board.state.copy())
         nn_input = self.board_state_to_nn_input(board.state)
 
-        probs, logits =  self.get_probs(NNAgent.sess, nn_input) #    NNAgent.sess.run([self.probabilities], feed_dict={self.input_positions: [nn_input]})[0][0]
+        probs, logits =  self.get_probs(sess, nn_input) #    NNAgent.sess.run([self.probabilities], feed_dict={self.input_positions: [nn_input]})[0][0]
 
         logits = np.copy(logits)
 
@@ -176,7 +176,7 @@ class NNAgent:
 
         return res, finished
 
-    def final_result(self, result):
+    def final_result(self, sess, result):
         if result == WIN:
             self.reward = WIN_VALUE
         elif result == LOSE:
@@ -197,11 +197,11 @@ class NNAgent:
                                                                     self.values_log, self.action_log):
                 nn_input = self.board_state_to_nn_input(current_board)
 
-                self.sess.run([NNAgent.train_step],
+                sess.run([NNAgent.train_step],
                               feed_dict={NNAgent.input_positions: [nn_input], NNAgent.target_input: [target]})
 
             if self.game_counter % 1000 == 0:
-                self.saver.save(self.sess, MODEL_PATH+MODEL_NAME)
+                self.saver.save(sess, MODEL_PATH+MODEL_NAME)
 
 if os.path.exists(MODEL_PATH+MODEL_NAME + '.meta'):
     NNAgent.load_graph()

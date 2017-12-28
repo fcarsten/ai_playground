@@ -10,11 +10,11 @@ class RandomPlayer:
         self.side = None
         self.result = NEUTRAL
 
-    def move(self, board):
+    def move(self, sess, board):
         _, res, finished = board.move(board.random_empty_spot(), self.side)
         return res, finished
 
-    def final_result(self, result):
+    def final_result(self, sess, result):
         self.result = result
 
     def new_game(self, side):
