@@ -1,10 +1,11 @@
 #
 # Copyright 2017 Carsten Friedrich (Carsten.Friedrich@gmail.com). All rights reserved
 #
+import random
 
 from tic_tac_toe.Board import Board, NAUGHT, CROSS, WIN, LOSE, NEUTRAL
 
-from tic_tac_toe.NeuralNetworkAgent4 import NNAgent
+from tic_tac_toe.NNAgentPolicyGradient import NNAgent
 
 from tic_tac_toe.RandomPlayer import RandomPlayer
 
@@ -63,15 +64,18 @@ def main():
     # player_rnd = RandomPlayer()
     # player_mm = MinMaxAgent()
 
-    player2 = NNAgent()
-    player1 = RndMinMaxAgent()
+    players2 = [NNAgent()]
+    players1 = [RndMinMaxAgent(), RandomPlayer()]
     # player1 = RandomPlayer()
     # player2 = RandomPlayer()
 
     game = 0
 
     while True:
+        player1 = random.choice(players1)
         player1.new_game(NAUGHT)
+
+        player2 = random.choice(players2)
         player2.new_game(CROSS)
 
         play_game(player1, player2)
