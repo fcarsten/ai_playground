@@ -105,7 +105,7 @@ class QNetwork:
                 self.loss_value = tf.identity(self.loss_value, 'loss_prob')
                 self.loss_penalty = tf.identity(self.loss_penalty, 'loss_penalty')
 
-            update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS, scope=name)
+            update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS, scope=name) # Need only for Batch noramlization
             with tf.control_dependencies(update_ops):
                 self.train_step = tf.train.GradientDescentOptimizer(learning_rate=LEARNING_RATE).minimize(self.loss,
                                                                                                           name='train')
