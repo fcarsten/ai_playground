@@ -14,7 +14,7 @@ from tic_tac_toe.Board import Board, BOARD_SIZE, EMPTY, WIN, DRAW, LOSE
 
 gamma = 0.1
 LEARNING_RATE = 0.001
-MODEL_NAME = 'tic-tac-toe-model-nna4'
+MODEL_NAME = 'tic-tac-toe-model-napg'
 MODEL_PATH = './saved_models/'
 
 WIN_VALUE = 2.0
@@ -22,52 +22,56 @@ DRAW_VALUE = 2.0
 LOSS_VALUE = -1.0
 
 TRAINING = True
-MAX_HISTORY_LENGTH=1000
-
-# def discount_rewards(r):
-#     """ take 1D float array of rewards and compute discounted reward """
-#     discounted_r = np.zeros_like(r)
-#     running_add = 0
-#     for t in reversed(xrange(0, r.size)):
-#         running_add = running_add * gamma + r[t]
-#         discounted_r[t] = running_add
-#     return discounted_r
-#
+MAX_HISTORY_LENGTH = 1000
 
 # The Policy-Based Agent
 
+class PolicyGradientNetwork:
+
+    def __init__(self, name):
+        self.state_in = None
+        self.logits = None
+        self.output = None
+        self.chosen_action = None
+        self.reward_holder = None
+        self.action_holder = None
+        self.indexes = None
+        self.responsible_outputs = None
+        self.loss = None
+        self.update_batch = None
+        self.name = name
+
+        self.build_graph()
+
+    def build_graph(self, lr=LEARNING_RATE, s_size=BOARD_SIZE * 3, a_size=BOARD_SIZE,
+                    h_size=BOARD_SIZE * 3 * 20):
+        with tf.variable_scope(self.name):
+            self.state_in = tf.placeholder(shape=[None, s_size], dtype=tf.float32)
+            hidden = slim.fully_connected(self.state_in, h_size, activation_fn=tf.nn.relu)
+            hidden = slim.fully_connected(hidden, h_size, activation_fn=tf.nn.relu)
+            self.logits = slim.fully_connected(hidden, a_size, activation_fn=None)
+            self.output = tf.nn.softmax(self.logits)
+            self.chosen_action = tf.argmax(self.output, 1)
+
+            # The next six lines establish the training proceedure. We feed the reward and chosen action into the network
+            # to compute the loss, and use it to update the network.
+            self.reward_holder = tf.placeholder(shape=[None], dtype=tf.float32)
+            self.action_holder = tf.placeholder(shape=[None], dtype=tf.int32)
+
+            self.indexes = tf.range(0, tf.shape(self.output)[0]) * tf.shape(self.output)[1] + self.action_holder
+            self.responsible_outputs = tf.gather(tf.reshape(self.output, [-1]), self.indexes)
+
+            self.loss = - tf.reduce_mean(tf.log(self.responsible_outputs + 1e-7) * self.reward_holder)
+
+            optimizer = tf.train.AdamOptimizer(learning_rate=lr)
+            self.update_batch = optimizer.minimize(self.loss)
+            # NNAgent.saver = tf.train.Saver()
+
+
 class NNAgent:
     is_training = False
-    sess = tf.Session()
 
-    @classmethod
-    def build_graph(cls, lr=LEARNING_RATE, s_size=BOARD_SIZE * 3, a_size=BOARD_SIZE, h_size=BOARD_SIZE * 3 * 20):
-        # tf.reset_default_graph()  # Clear the Tensorflow graph.
-        # These lines established the feed-forward part of the network. The agent takes a state and produces an action.
-        NNAgent.state_in = tf.placeholder(shape=[None, s_size], dtype=tf.float32)
-        hidden = slim.fully_connected(NNAgent.state_in, h_size, activation_fn=tf.nn.relu)
-        hidden = slim.fully_connected(hidden, h_size, activation_fn=tf.nn.relu)
-        NNAgent.logits = slim.fully_connected(hidden, a_size, activation_fn=None)
-        NNAgent.output = tf.nn.softmax(NNAgent.logits)
-        NNAgent.chosen_action = tf.argmax(NNAgent.output, 1)
-
-        # The next six lines establish the training proceedure. We feed the reward and chosen action into the network
-        # to compute the loss, and use it to update the network.
-        NNAgent.reward_holder = tf.placeholder(shape=[None], dtype=tf.float32)
-        NNAgent.action_holder = tf.placeholder(shape=[None], dtype=tf.int32)
-
-        NNAgent.indexes = tf.range(0, tf.shape(NNAgent.output)[0]) * tf.shape(NNAgent.output)[1] + NNAgent.action_holder
-        NNAgent.responsible_outputs = tf.gather(tf.reshape(NNAgent.output, [-1]), NNAgent.indexes)
-
-        NNAgent.loss = - tf.reduce_mean(tf.log(NNAgent.responsible_outputs+1e-7) * NNAgent.reward_holder)
-
-        optimizer = tf.train.AdamOptimizer(learning_rate=lr)
-        NNAgent.update_batch = optimizer.minimize(NNAgent.loss)
-        init = tf.global_variables_initializer()
-        NNAgent.sess.run(init)
-        NNAgent.saver = tf.train.Saver()
-
-    def __init__(self):
+    def __init__(self, name):
         self.random_move_prob = 0.9
         self.game_counter = 0
         self.side = None
@@ -76,6 +80,8 @@ class NNAgent:
         self.success_history = ([], [], [])
         self.fail_history = ([], [], [])
         self.probs_history = []
+        self.name = name
+        self.nn = PolicyGradientNetwork(name)
 
     def new_game(self, side):
         self.random_move_prob *= 0.9
@@ -91,22 +97,20 @@ class NNAgent:
         return res.reshape(-1)
 
     def get_probs(self, sess, input_pos, is_training):
-        probs, logits = sess.run([NNAgent.output, NNAgent.logits],
-                    feed_dict={NNAgent.state_in: input_pos})
+        probs, logits = sess.run([self.nn.output, self.nn.logits],
+                                 feed_dict={self.nn.state_in: input_pos})
         return probs, logits
 
-
-    def move(self, board):
+    def move(self, sess, board):
         self.board_position_log.append(board.state.copy())
         nn_input = self.board_state_to_nn_input(board.state)
 
-        probs_array, logits_array = self.get_probs(NNAgent.sess, [nn_input], False)
+        probs_array, logits_array = self.get_probs(sess, [nn_input], False)
         probs = probs_array[0].copy()
 
         self.probs_history.append(probs_array[0])
         # if not ((probs > 0).all()):
         #     print("Zero in probs!")
-
 
         pref_move = np.argmax(probs)
         if not board.is_legal(pref_move):
@@ -146,7 +150,7 @@ class NNAgent:
             running_add = running_add * gamma
         return discounted_r.tolist()
 
-    def final_result(self, result):
+    def final_result(self, sess, result):
         if result == WIN:
             final_value = WIN_VALUE
         elif result == LOSE:
@@ -178,21 +182,16 @@ class NNAgent:
             input_actions.extend(self.fail_history[1])
             input_rewards.extend(self.fail_history[2])
 
-            feed_dict = {NNAgent.reward_holder: input_rewards,
-                         NNAgent.action_holder: input_actions, NNAgent.state_in: input_states}
-            _, inds, rps, loss = self.sess.run([NNAgent.update_batch, NNAgent.indexes, NNAgent.responsible_outputs, NNAgent.loss], feed_dict=feed_dict)
+            feed_dict = {self.nn.reward_holder: input_rewards,
+                         self.nn.action_holder: input_actions, self.nn.state_in: input_states}
+            _, inds, rps, loss = sess.run(
+                [self.nn.update_batch, self.nn.indexes, self.nn.responsible_outputs, self.nn.loss], feed_dict=feed_dict)
 
             if self.game_counter % 1000 == 0:
                 print("Loss Value: %.9f" % loss)
             if len(self.success_history[0]) >= MAX_HISTORY_LENGTH:
                 self.success_history = ([], [], [])
-                # self.success_history = (self.success_history[0][MAX_HISTORY_LENGTH//2:],
-                #                         self.success_history[1][MAX_HISTORY_LENGTH//2:],
-                #                         self.success_history[2][MAX_HISTORY_LENGTH//2:])
+
             if len(self.fail_history[0]) >= MAX_HISTORY_LENGTH:
                 self.fail_history = ([], [], [])
-                # self.fail_history = (self.fail_history[0][MAX_HISTORY_LENGTH//2:],
-                #                         self.fail_history[1][MAX_HISTORY_LENGTH//2:],
-                #                         self.fail_history[2][MAX_HISTORY_LENGTH//2:])
 
-NNAgent.build_graph()

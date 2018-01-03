@@ -22,7 +22,7 @@ class Board:
                       3: [(0, 1)],
                       6: [(0, 1)]}
 
-    def hash_value(self):
+    def hash_value(self) -> int:
         res = 0
         for i in range(9):
             res *= 3
@@ -56,25 +56,25 @@ class Board:
         else:
             self.state = s.copy()
 
-    def coord_to_pos(self, coord):
+    def coord_to_pos(self, coord: (int, int)) -> int:
         if coord is None:
             return None
 
-        return coord[0]*3+coord[1]
+        return coord[0] * 3 + coord[1]
 
-    def pos_to_coord(self, pos):
+    def pos_to_coord(self, pos: int) -> (int, int):
         if pos is None:
             return None
 
-        return (pos // 3, pos % 3)
+        return pos // 3, pos % 3
 
     def reset(self):
         self.state.fill(EMPTY)
 
-    def num_empty(self):
+    def num_empty(self) -> int:
         return np.count_nonzero(self.state == EMPTY)
 
-    def random_empty_spot(self):
+    def random_empty_spot(self) -> int:
         index = np.random.randint(self.num_empty())
         for i in range(9):
             if self.state[i] == EMPTY:
@@ -83,7 +83,7 @@ class Board:
                 else:
                     index = index - 1
 
-    def is_legal(self, pos):
+    def is_legal(self, pos: int) -> bool:
         return self.state[pos] == EMPTY
 
     def move(self, position, type):

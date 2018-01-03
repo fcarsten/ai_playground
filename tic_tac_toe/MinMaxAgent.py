@@ -16,7 +16,7 @@ class MinMaxAgent:
         self.side = side
         self.result = NEUTRAL
 
-    def final_result(self, result):
+    def final_result(self, sess, result):
         self.result = result
 
     def is_trainable(self):
@@ -82,7 +82,7 @@ class MinMaxAgent:
         self.cache[board_hash] = (max, action)
         return max, action
 
-    def move(self, board):
+    def move(self, sess, board):
         score, action = self._max(board)
         _, res, finished = board.move(action, self.side)
         return res, finished
