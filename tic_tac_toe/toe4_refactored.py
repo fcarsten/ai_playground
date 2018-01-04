@@ -67,8 +67,8 @@ def main():
     # player_rnd = RandomPlayer()
     # player_mm = MinMaxAgent()
 
-    players2 = [RndMinMaxAgent()]
-    players1 = [TQPlayer()]
+    players1 = [NNAgentQ4("p1")]
+    players2 = [TQPlayer()]
     # players2 = [NNAgentQ4("p1")]
     # players1 = [NNAgentQ4("p2")]
     # players1 = [RndMinMaxAgent(), RandomPlayer()]

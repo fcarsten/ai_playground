@@ -15,7 +15,7 @@ import os.path
 
 from tic_tac_toe.Board import Board, BOARD_SIZE, EMPTY, WIN, DRAW, LOSE
 
-LEARNING_RATE = 0.001
+LEARNING_RATE = 0.0001
 MODEL_NAME = 'tic-tac-toe-model-nna4'
 MODEL_PATH = './saved_models/'
 
@@ -77,9 +77,7 @@ class QNetwork:
             l2_vars.append(w)
             net, w = self.add_layer(net, BOARD_SIZE * 3 * 128, tf.nn.relu, self.is_training)
             l2_vars.append(w)
-            net, w = self.add_layer(net, BOARD_SIZE * 3 * 128, tf.nn.relu, self.is_training)
-            l2_vars.append(w)
-            net, w = self.add_layer(net, BOARD_SIZE * 3 * 128, tf.nn.relu, self.is_training)
+            net, w = self.add_layer(net, BOARD_SIZE * 3 * 512, tf.nn.relu, self.is_training)
             l2_vars.append(w)
             # net, w = cls.add_layer(net, BOARD_SIZE * 3*18, tf.nn.relu, NNAgent.is_training)
             # l2_vars.append(w)
@@ -150,7 +148,7 @@ class NNAgent:
         self.next_max_log = []
         self.output_values_log = []
         self.successes = []
-        self.random_move_prob = 0.9
+        self.random_move_prob = 0.0
         self.training_data = ([], [])
         self.is_training = False
         self.name = name
@@ -253,8 +251,9 @@ class NNAgent:
 
             if final_value > 0:
                 self.successes.append([states, self.action_log, final_value])
-                if len(self.successes) > MAX_SUCCESS_HISTORY_LENGTH:
-                    self.successes.pop()
+                s_len = len(self.successes)
+                if s_len > MAX_SUCCESS_HISTORY_LENGTH:
+                    self.successes = self.successes[s_len-MAX_SUCCESS_HISTORY_LENGTH:]
             elif len(self.successes) > 0:
                 s, t = self.reevaluate_prior_success(sess)
                 # for old_game in self.successes:
@@ -263,7 +262,7 @@ class NNAgent:
                 self.training_data[0].extend(s)
                 self.training_data[1].extend(t)
 
-                self.training_data[0].extend(states)
+            self.training_data[0].extend(states)
             self.training_data[1].extend(target_values)
 
             if True:
