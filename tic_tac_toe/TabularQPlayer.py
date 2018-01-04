@@ -16,12 +16,14 @@ class TQPlayer:
         self.side = None
         self.q = {}  # type: Dict[int, [float]]
         self.games_history = []  # type: List[(int, int)]
+        self.learning_rate = 0.1
+        self.value_discount = 0.9
 
     def get_q(self, board_hash: int) -> [int]:
         if board_hash in self.q:
             qvals = self.q[board_hash]
         else:
-            qvals = np.full(9, 1.0 / 9.0)
+            qvals = np.full(9, 1.0)
             self.q[board_hash] = qvals
 
         return qvals
@@ -30,11 +32,11 @@ class TQPlayer:
         board_hash = board.hash_value()  # type: int
         qvals = self.get_q(board_hash)  # type: [int]
         while True:
-            m = np.argmax(qvals)
+            m = np.argmax(qvals) # type: int
             if board.is_legal(m):
                 return m
             else:
-                qvals[m] = 0
+                qvals[m] = -1.0
 
     def move(self, sess, board: Board):
         m = self.get_move(board)
@@ -57,10 +59,10 @@ class TQPlayer:
 
         for h in self.games_history:
             qvals = self.get_q(h[0])
-            if next_max < 0:
+            if next_max < 0: # First time through the loop
                 qvals[h[1]] = final_value
             else:
-                qvals[h[1]] = 0.9*next_max
+                qvals[h[1]] = qvals[h[1]] * (1.0 - self.learning_rate) + self.learning_rate*self.value_discount*next_max
 
             next_max = max(qvals)
 
